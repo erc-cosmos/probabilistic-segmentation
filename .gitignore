@@ -1,0 +1,8 @@
+.venv/
+data/
+output/
+*.csv
+*.code-workspace
+.pytest_cache
+.vscode
+.DS_Store
