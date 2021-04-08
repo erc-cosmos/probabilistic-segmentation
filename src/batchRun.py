@@ -15,7 +15,6 @@ def trimPID(pid):
     return pid.split('-')[0]
 
 def batchRun(fullData,arcPrior,lengthPriorParams,outputDir,pieceNameFinder):
-    # os.makedirs(outputDir, exist_ok=True)
     for (piece, performances) in fullData:
         for (pid,data) in performances:
             pid = trimPID(pid)
@@ -27,10 +26,6 @@ def batchRun(fullData,arcPrior,lengthPriorParams,outputDir,pieceNameFinder):
             posteriorMarginals = runAlphaBeta(data,arcPrior,lengthPrior)
 
             writers.writeMarginals(os.path.join(outputDir,f"{piece_formatted}_{pid}_pm.csv"), posteriorMarginals)
-            # with open(os.path.join(outputDir,f"{piece_formatted}_{pid}_pm.csv"),'w') as outfile:
-            #     csvWriter = csv.writer(outfile)
-            #     csvWriter.writerow(["Beat count", "Posterior Marginal"])
-            #     csvWriter.writerows(enumerate(posteriorMarginals))
 
 if __name__=="__main__":
     # fullData = readAllMazurkaTimings("data/beat_time")
