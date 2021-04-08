@@ -6,6 +6,7 @@ from scipy.stats import multivariate_normal
 
 from mydecorators import singleOrList
 
+
 @singleOrList(kw='priors')
 def makeMeanVect(priors):
     """ Returns an array of the prior means of the model parameters """
@@ -13,6 +14,7 @@ def makeMeanVect(priors):
     for prior in priors:
         result.extend([prior['aMean'], prior['bMean'], prior['cMean']])
     return np.array(result)
+
 
 @singleOrList(kw='priors')
 def makeVarVect(priors):
@@ -27,13 +29,15 @@ def makeDesignMatrix(xarray, outputDims=1):
     """ Builds the design matrix for the problem at hand """
     return block_diag(*[np.array([[x**2, x, 1] for x in xarray]) for i in range(outputDims)])
 
+
 @singleOrList(kw='priors')
 def makeNoiseCov(priors, inputVector):
     """ Builds the gaussian noise's covariance matrix """
     return block_diag(*[(prior['noiseStd']**2)*np.identity(len(inputVector)) for prior in priors])
 
+
 @singleOrList(kw='priors')
-def arcLikelihood(priors,data):
+def arcLikelihood(priors, data):
     """ Takes a prior and a set of input/output values and return the log-likelihood of the data """
     # 1 input, variable number of outputs
     (inputVector, outputVectors) = zip(*data)
@@ -98,20 +102,3 @@ def knownSegmentationML(data, segmentation):
         y.extend(values)
         lengths.append(ssnext-sscurr)
     return y, models, lengths
-
-
-if __name__ == "__main__":
-    from testHelpers import *
-    priors = [arcPrior, arcPrior2]
-    # priors = arcPrior
-
-    x, y = zip(*dataMultidim)
-    # y = np.array(y)[:, 1]
-    # dataMultidim = zip(x, y)
-    # print(y)
-
-    print("MeanVect", makeMeanVect(priors))
-    print("VarVect", makeVarVect(priors))
-    print("DesignMatrix", makeDesignMatrix(x, outputDims=2))
-    print("NoiseCov", makeNoiseCov(priors, x))
-    print("Likelihood", arcLikelihood(priors, dataMultidim))
