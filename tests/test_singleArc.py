@@ -1,5 +1,5 @@
 import context
-import singleArcMultidim as sa
+import singleArc as sa
 import defaultVars
 import numpy as np
 

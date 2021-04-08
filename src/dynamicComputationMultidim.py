@@ -1,5 +1,5 @@
 # Algorithms for MAP estimation and PM computation
-from singleArcMultidim import *
+from singleArc import *
 import math
 
 alphaMatrix = []
