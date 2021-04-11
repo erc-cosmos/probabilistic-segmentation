@@ -11,21 +11,20 @@ class ImpossibleCondition(ZeroDivisionError):
     pass
 
 
-class NormalLengthPrior:
-    """Prior using a truncated normal distribution."""
+class ContinuousLengthPrior:
+    """Prior using a continuous distribution."""
 
-    def __init__(self, mean, stddev, x, maxLength):
-        """Construct a NormalLengthPrior."""
+    def __init__(self, cdf, maxLength, x):
+        """Construct a continuous length prior from a cdf function."""
         if maxLength <= 0:
             raise ValueError("Positive max length required")
-        self.mean = mean
-        self.stddev = stddev
+        self.cdf = cdf
         self.x = x
-        self.max = maxLength
+        self.maxLength = maxLength
 
     def __repr__(self):
-        """Return a human-readable representation of a normal prior."""
-        return f"NormalLengthPrior N({self.mean},{self.stddev}), max={self.max} on {len(self.x)} points"
+        """Return a human-readable representation of a continuous prior."""
+        return f"ContinuousLengthPrior, max={self.maxLength}"
 
     def evalCond(self, N, i, j):
         """
@@ -38,17 +37,16 @@ class NormalLengthPrior:
         if j <= i or j >= len(self.x):
             return 0
         x0 = self.x[i]
-        xmax = min(self.x[-1]-x0, self.max)
+        xmax = min(self.x[-1]-x0, self.maxLength)
         xjpred = self.x[j-1]-x0
         xj = self.x[j]-x0
 
-        if xj > self.max:  # Cap xj at max
-            xj = self.max
-        if xjpred > self.max:  # Cap xj at max
-            xjpred = self.max
+        if xj > self.maxLength:  # Cap xj at max
+            xj = self.maxLength
+        if xjpred > self.maxLength:  # Cap xj at max
+            xjpred = self.maxLength
 
-        c0, cjpred, cj, cmax = sp.stats.norm.cdf(
-            [0, xjpred, xj, xmax], self.mean, self.stddev)
+        c0, cjpred, cj, cmax = self.cdf([0, xjpred, xj, xmax])
 
         # Scaling factor for the part of the distribution outside possible values
         scaling = cmax - c0
@@ -58,18 +56,32 @@ class NormalLengthPrior:
 
     def getMaxIndex(self, i):
         """Return the maximum arc end with non-null prior for an arc starting at i."""
-        xmax = self.x[i] + self.max
-        imax = i + next((it for it, x in enumerate(self.x[i:]) if x > xmax),
-                        len(self.x[i:])-1)
+        xmax = self.x[i] + self.maxLength
+        imax = i + next((it for it, x in enumerate(self.x[i:]) if x > xmax), len(self.x[i:])-1)
         return imax
 
     def getMinIndex(self, j):
         """Return the minimum arc start with non-null prior for an arc ending at i."""
-        xmin = self.x[j] - self.max
+        xmin = self.x[j] - self.maxLength
         imin = next((it-1 for it, x in enumerate(self.x[:j]) if x > xmin), 0)
         if imin == -1:
             imin = 0
         return imin
+
+
+class NormalLengthPrior(ContinuousLengthPrior):
+    """Prior using a truncated normal distribution."""
+
+    def __init__(self, mean, stddev, x, maxLength):
+        """Construct a NormalLengthPrior."""
+        self.mean = mean
+        self.stddev = stddev
+        cdf = functools.partial(sp.stats.norm.cdf, loc=mean, scale=stddev)
+        super().__init__(cdf, maxLength, x)
+
+    def __repr__(self):
+        """Return a human-readable representation of a normal prior."""
+        return f"NormalLengthPrior N({self.mean},{self.stddev}), max={self.max} on {len(self.x)} points"
 
 
 class DiscreteLengthPrior:

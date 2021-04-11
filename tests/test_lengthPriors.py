@@ -22,8 +22,11 @@ empiricalPriors = st.builds(lengthPrior.EmpiricalLengthPrior,
                   st.integers(min_value=0))
 def test_proba_Normal(distribution, i, j):
     """Check that evalCond returns probability-like values."""
-    result = distribution.evalCond(None, i, j)
-    assert 0 <= result <= 1
+    try:
+        result = distribution.evalCond(None, i, j)
+        assert 0 <= result <= 1
+    except lengthPrior.ImpossibleCondition:
+        pass
 
 
 @hypothesis.given(normalPriors,
