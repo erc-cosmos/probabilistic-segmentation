@@ -79,8 +79,7 @@ class DiscreteLengthPrior:
         """Construct a DiscreteLengthPrior."""
         self._dataLength = dataLength
         self._distrib = distribution
-        if maxLength is None:
-            self._maxLength = max(self.distrib)
+        self._maxLength = maxLength if maxLength is not None else max(self.distrib)
 
     def __repr__(self):
         """Return a human-readable representation of an empirical prior."""
@@ -137,14 +136,6 @@ class EmpiricalLengthPrior(DiscreteLengthPrior):
     def __repr__(self):
         """Return a human-readable representation of an empirical prior."""
         return super().__repr__()+f" based on {len(self._data)} samples"
-
-    def buildDistribution(self, data):
-        """Set distrib from the provided data."""
-        counts = collections.Counter(data)
-        for key in counts:
-            counts[key] /= float(len(data))
-        self._maxLength = max(counts)
-        self._distrib = counts
 
 
 def inferDiscreteDistribution(data, *, reserve=0, domain=None):
