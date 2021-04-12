@@ -2,10 +2,6 @@
 from singleArc import *
 import math
 
-alphaMatrix = []
-betaMatrix = []
-
-
 
 def computeMAPs(data, arcPrior, lengthPrior):
     """Construct MAPs matrix.
@@ -89,6 +85,7 @@ def computeAlphas(arcPrior, lengthPrior, DLs):
     and having an arc end at that point.
     This uses a recursive formulation with dynamic programming.
     """
+    alphaMatrix = []
     maxLength = lengthPrior.maxLength
     #TODO: Insert reference to recursive formula
 
@@ -122,8 +119,8 @@ def computeBetas(arcPrior, lengthPrior, DLs):
     This uses a recursive formulation with dynamic programming.
     """
     maxLength = lengthPrior.maxLength
+    betaMatrix = []
     #TODO: Insert reference to recursive formula
-
     
     N = len(DLs)
     betaMatrix = np.NINF * np.ones((N+1,N+1))
