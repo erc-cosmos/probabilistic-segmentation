@@ -26,11 +26,10 @@ class ContinuousLengthPrior:
         """Return a human-readable representation of a continuous prior."""
         return f"ContinuousLengthPrior, max={self.maxLength}"
 
-    def evalCond(self, N, i, j):
+    def evalCond(self, i, j):
         """
         Return the likelihood of the next boundary being at j given a boundary at i.
 
-        N -- not used anymore TODO: Remove
         i -- known boundary index
         j -- examined index
         """
@@ -81,7 +80,7 @@ class NormalLengthPrior(ContinuousLengthPrior):
 
     def __repr__(self):
         """Return a human-readable representation of a normal prior."""
-        return f"NormalLengthPrior N({self.mean},{self.stddev}), max={self.max} on {len(self.x)} points"
+        return f"NormalLengthPrior N({self.mean},{self.stddev}), max={self.maxLength} on {len(self.x)} points"
 
 
 class DiscreteLengthPrior:
@@ -127,6 +126,14 @@ class DiscreteLengthPrior:
         else:
             scaling = self.scalingFactor(i)
         return self.distrib.get(length, 0)/scaling
+
+    def getMaxIndex(self, i):
+        """Return the maximum arc end with non-null prior for an arc starting at i."""
+        return min(i+self.maxLength-1,self.dataLength-1)
+
+    def getMinIndex(self, j):
+        """Return the minimum arc start with non-null prior for an arc ending at i."""
+        return max(j-self.maxLength,0)
 
     def scalingFactor(self, i):
         """Return the scaling factor for truncating the underlying the distribution."""

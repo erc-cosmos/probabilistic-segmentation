@@ -104,7 +104,7 @@ def computeAlphas(arcPrior, lengthPrior, DLs):
             llikData = DLs[i][n]
             # p([arcStart,arcEnd] in Z | [~,arcEnd] in Z)
             # lambda(arcStart,arcEnd) in the doc
-            llikLength = np.log(lengthPrior.evalCond(N, i, n))
+            llikLength = np.log(lengthPrior.evalCond(i, n))
             # print(likData/scaling)
             alphaIncrementLog = alphas[i] + llikLength + llikData
             alphaMatrix[n][i] = alphaIncrementLog
@@ -137,7 +137,7 @@ def computeBetas(arcPrior, lengthPrior, DLs):
             llikData = DLs[n+1][i]
             # p([arcStart,arcEnd] in Z | [~,arcEnd] in Z)
             # lambda'(arcStart,arcEnd) in the doc
-            llikLength = np.log(lengthPrior.evalCond(N, n+1, i))
+            llikLength = np.log(lengthPrior.evalCond(n+1, i))
             betaIncrementLog = betas[i+1] + llikData + llikLength
             betaMatrix[n][i] = betaIncrementLog
 
