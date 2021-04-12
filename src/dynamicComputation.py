@@ -8,12 +8,12 @@ betaMatrix = []
 
 
 def computeMAPs(data, arcPrior, lengthPrior):
-    """ Initialize MAPs matrix.
+    """Construct MAPs matrix.
 
-        This matrix's elements consist of the maximally likely arc considering the data and
-        the corresponding log-likelihood over all valid slices of data (valued None otherwise).
-        A slice of data is indexed by start and end index and is valid if start<end and
-        if its length is less than the specified maximum.
+    This matrix's elements consist of the maximally likely arc considering the data and
+    the corresponding log-likelihood over all valid slices of data (valued None otherwise).
+    A slice of data is indexed by start and end index and is valid if start<end and
+    if its length is less than the specified maximum.
     """
     MAPs = [[{"LL": None, "Arc": None} for end in range(len(data))] for start in range(len(data))]
 
@@ -27,12 +27,12 @@ def computeMAPs(data, arcPrior, lengthPrior):
 
 
 def computeDataLikelihood(data, arcPrior, lengthPrior):
-    """ Initialize log-likelihood matrix.
-    
-        This matrix lists the log-likelihood as an undivided arc
-        of all valid slices of data (0 otherwise).
-        A slice of data is indexed by start and end index and is valid
-        if start<end and if its length is less than the specified maximum.
+    """Construct log-likelihood matrix.
+
+    This matrix lists the log-likelihood as an undivided arc
+    of all valid slices of data (0 otherwise).
+    A slice of data is indexed by start and end index and is valid
+    if start<end and if its length is less than the specified maximum.
     """
     # Initialize log-Likelihood matrix
     DLs = [[0 for end in range(len(data))] for start in range(len(data))]
@@ -47,8 +47,7 @@ def computeDataLikelihood(data, arcPrior, lengthPrior):
 
 
 def runViterbi(data, arcPrior, lengthPrior, MAPs=None):
-    """ Runs a modified Viterbi algorithm to compute the MAP arc sequence
-    """
+    """Run a modified Viterbi algorithm to compute the MAP arc sequence."""
     maxLength = lengthPrior['max']
     # Compute MAP arcs if not provided
     if MAPs is None:
@@ -84,10 +83,11 @@ def runViterbi(data, arcPrior, lengthPrior, MAPs=None):
 
 
 def computeAlphas(arcPrior, lengthPrior, DLs):
-    """ Alpha phase of modified alpha-beta algorithm
-        Computes the joint likelihood of the data up to a point,
-        and having an arc end at that point.
-        This uses a recursive formulation with dynamic programming.
+    """Perform the Alpha phase of modified alpha-beta algorithm.
+
+    Computes the joint likelihood of the data up to a point,
+    and having an arc end at that point.
+    This uses a recursive formulation with dynamic programming.
     """
     maxLength = lengthPrior.maxLength
     #TODO: Insert reference to recursive formula
@@ -115,10 +115,11 @@ def computeAlphas(arcPrior, lengthPrior, DLs):
     return alphas
 
 def computeBetas(arcPrior, lengthPrior, DLs):
-    """ Beta phase of modified alpha-beta algorithm
-        Computes the conditional likelihood of the data from a point to the end,
-        assuming an arc begins at that point.
-        This uses a recursive formulation with dynamic programming.
+    """Perform the beta phase of modified alpha-beta algorithm.
+
+    Computes the conditional likelihood of the data from a point to the end,
+    assuming an arc begins at that point.
+    This uses a recursive formulation with dynamic programming.
     """
     maxLength = lengthPrior.maxLength
     #TODO: Insert reference to recursive formula
@@ -149,8 +150,7 @@ def computeBetas(arcPrior, lengthPrior, DLs):
     
 
 def runAlphaBeta(data, arcPrior, lengthPrior, DLs=None, linearSampling=True):
-    """ Modified alpha-beta algorithm to compute posterior marginals on arc boundaries
-    """
+    """Run the alpha-beta algorithm to compute posterior marginals on arc boundaries."""
     if DLs is None:
         DLs = computeDataLikelihood(data, arcPrior, lengthPrior)
 
