@@ -1,10 +1,10 @@
-"""Some custom decorators"""
+"""Some custom decorators."""
 
 import functools
 import inspect
 
 def preprocess(kw,preprocessor):
-    """ Decorator to preprocess a given argument """
+    """Decorate to preprocess a given argument."""
     def decorator(func):
         @functools.wraps(func)
         def wrapper(*args,**kwargs):
@@ -17,7 +17,8 @@ def preprocess(kw,preprocessor):
 
 def singleOrList(func=None, *, kw=None):
     """
-    Decorator to convert a single value to a list of length 1 
+    Decorate to convert a single value to a list of length 1.
+
     If kw is specified, conversion is applied to this argument, otherwise to the first argument
     """
     if func is None:

@@ -1,4 +1,4 @@
-"""Functions for single arcs with multivariate output"""
+"""Functions for single arcs with multivariate output."""
 import numpy as np
 import numpy.polynomial.polynomial
 from scipy.linalg import block_diag
@@ -9,7 +9,7 @@ from mydecorators import singleOrList
 
 @singleOrList(kw='priors')
 def makeMeanVect(priors):
-    """ Returns an array of the prior means of the model parameters """
+    """Return an array of the prior means of the model parameters."""
     result = []
     for prior in priors:
         result.extend([prior['aMean'], prior['bMean'], prior['cMean']])
@@ -18,7 +18,7 @@ def makeMeanVect(priors):
 
 @singleOrList(kw='priors')
 def makeVarVect(priors):
-    """ Returns an array of the prior variance of the model parameters """
+    """Return an array of the prior variance of the model parameters."""
     result = []
     for prior in priors:
         result.extend([prior['aStd'], prior['bStd'], prior['cStd']])
@@ -26,19 +26,19 @@ def makeVarVect(priors):
 
 
 def makeDesignMatrix(xarray, outputDims=1):
-    """ Builds the design matrix for the problem at hand """
+    """Build the design matrix for the problem at hand."""
     return block_diag(*[np.array([[x**2, x, 1] for x in xarray]) for i in range(outputDims)])
 
 
 @singleOrList(kw='priors')
 def makeNoiseCov(priors, inputVector):
-    """ Builds the gaussian noise's covariance matrix """
+    """Build the gaussian noise's covariance matrix."""
     return block_diag(*[(prior['noiseStd']**2)*np.identity(len(inputVector)) for prior in priors])
 
 
 @singleOrList(kw='priors')
 def arcLikelihood(priors, data):
-    """ Takes a prior and a set of input/output values and return the log-likelihood of the data """
+    """Take a prior and a set of input/output values and return the log-likelihood of the data."""
     # 1 input, variable number of outputs
     (inputVector, outputVectors) = zip(*data)
     outputDim = len(priors)
@@ -62,15 +62,13 @@ def arcLikelihood(priors, data):
 
 
 def arcMAP(prior, data):
-    """ Takes a prior and a set of input/output values and return the most likely arc with its loglikelihood
-    """
+    """Take a prior and a set of input/output values and return the most likely arc with its loglikelihood."""
     # NYI
     return {"LL": None, "Arc": None}
 
 
 def arcML(data, returnEstimates=False):
-    """ Returns the maximum likelihood arc for a set of input/output values
-    """
+    """Return the maximum likelihood arc for a set of input/output values."""
     (inputVector, outputVector) = zip(*data)
     polyfit = np.polynomial.polynomial.polyfit(inputVector, outputVector, 2)
     if returnEstimates:
@@ -80,6 +78,7 @@ def arcML(data, returnEstimates=False):
 
 
 def normalizeX(dataSlice, linearSampling=True):
+    """Normalize input variable (or generate it if needed) to range from 0 to 1."""
     # TODO: Automatically detect if linear sampling (beat-wise) or not (note-wise)
     if linearSampling:
         if len(dataSlice) == 1:
@@ -92,6 +91,7 @@ def normalizeX(dataSlice, linearSampling=True):
 
 
 def knownSegmentationML(data, segmentation):
+    """Perform a ML estimation with known boundaries."""
     y = []  # ML estimation of the denoised data
     models = []  # ML coefficient estimates
     lengths = []
