@@ -1,3 +1,4 @@
+"""Some default variables for testing."""
 arcPrior = {
     # Gaussian priors on the parameters of ax^2 + bx + c
     'aMean': 10,
