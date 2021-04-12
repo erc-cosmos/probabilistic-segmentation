@@ -139,11 +139,11 @@ class DiscreteLengthPrior:
 class EmpiricalLengthPrior(DiscreteLengthPrior):
     """Prior using an empirical distribution."""
 
-    def __init__(self, data, dataLength):
+    def __init__(self, data, dataLength, maxLength=None):
         """Construct an EmpiricalLengthPrior."""
         self._data = data
         distribution = inferDiscreteDistribution(data)
-        super().__init__(dataLength, distribution)
+        super().__init__(dataLength, distribution, maxLength)
 
     def __repr__(self):
         """Return a human-readable representation of an empirical prior."""

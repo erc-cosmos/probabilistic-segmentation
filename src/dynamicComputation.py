@@ -89,7 +89,7 @@ def computeAlphas(arcPrior, lengthPrior, DLs):
         and having an arc end at that point.
         This uses a recursive formulation with dynamic programming.
     """
-    maxLength = lengthPrior.max
+    maxLength = lengthPrior.maxLength
     #TODO: Insert reference to recursive formula
 
     # Indices are shifted by 1 compared to the doc !!!
@@ -120,7 +120,7 @@ def computeBetas(arcPrior, lengthPrior, DLs):
         assuming an arc begins at that point.
         This uses a recursive formulation with dynamic programming.
     """
-    maxLength = lengthPrior.max
+    maxLength = lengthPrior.maxLength
     #TODO: Insert reference to recursive formula
 
     
