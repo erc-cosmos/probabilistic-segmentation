@@ -1,4 +1,4 @@
-# Algorithms for MAP estimation and PM computation
+"""Algorithms for MAP estimation and PM computation."""
 from singleArc import *
 import math
 
@@ -8,7 +8,8 @@ betaMatrix = []
 
 
 def computeMAPs(data, arcPrior, lengthPrior):
-    """ Initializes MAPs matrix
+    """ Initialize MAPs matrix.
+
         This matrix's elements consist of the maximally likely arc considering the data and
         the corresponding log-likelihood over all valid slices of data (valued None otherwise).
         A slice of data is indexed by start and end index and is valid if start<end and
@@ -26,7 +27,8 @@ def computeMAPs(data, arcPrior, lengthPrior):
 
 
 def computeDataLikelihood(data, arcPrior, lengthPrior):
-    """ Initializes log-likelihood matrix
+    """ Initialize log-likelihood matrix.
+    
         This matrix lists the log-likelihood as an undivided arc
         of all valid slices of data (0 otherwise).
         A slice of data is indexed by start and end index and is valid

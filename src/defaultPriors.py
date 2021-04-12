@@ -1,7 +1,4 @@
-#!/usr/bin/python3
-'''
-Set of default priors, tuned from a small sample
-'''
+"""Set of default priors, tuned from a small sample."""
 
 # Set for tempo
 arcPriorTempo = { # Set after first 10 each of M06-1 and M06-2
