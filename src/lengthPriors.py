@@ -129,11 +129,11 @@ class DiscreteLengthPrior:
 
     def getMaxIndex(self, i):
         """Return the maximum arc end with non-null prior for an arc starting at i."""
-        return min(i+self.maxLength-1,self.dataLength-1)
+        return min(i+self.maxLength-1, self.dataLength-1)
 
     def getMinIndex(self, j):
         """Return the minimum arc start with non-null prior for an arc ending at i."""
-        return max(j-self.maxLength,0)
+        return max(j-self.maxLength, 0)
 
     def scalingFactor(self, i):
         """Return the scaling factor for truncating the underlying the distribution."""

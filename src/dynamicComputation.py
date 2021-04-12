@@ -1,7 +1,8 @@
 """Algorithms for MAP estimation and PM computation."""
-from singleArc import *
+import singleArc as sa
 import math
 import lengthPriors
+import numpy as np
 
 
 def computeMAPs(data, arcPrior, lengthPrior):
@@ -18,12 +19,12 @@ def computeMAPs(data, arcPrior, lengthPrior):
     # for end in range(len(data)):
     #     for start in range(max(0, end - maxLength), end):
     for start in range(len(data)):
-        for end in range(start+1,lengthPrior.getMaxIndex(start)+1):
-            MAPs[start][end] = arcMAP(arcPrior, normalizeX(data[start:end+1]))
+        for end in range(start+1, lengthPrior.getMaxIndex(start)+1):
+            MAPs[start][end] = sa.arcMAP(arcPrior, sa.normalizeX(data[start:end+1]))
     return MAPs
 
 
-def computeDataLikelihood(data, arcPrior, lengthPrior):
+def computeDataLikelihood(data, arcPrior, lengthPrior, linearSampling=True):
     """Construct log-likelihood matrix.
 
     This matrix lists the log-likelihood as an undivided arc
@@ -36,10 +37,10 @@ def computeDataLikelihood(data, arcPrior, lengthPrior):
 
     # Fill up subdiagonals (rest is zeroes)
     for start in range(len(data)):
-        for end in range(start+1,lengthPrior.getMaxIndex(start)+1):
+        for end in range(start+1, lengthPrior.getMaxIndex(start)+1):
             scaling = 0
-            DLs[start][end] = arcLikelihood(
-                arcPrior, normalizeX(data[start:end+1])) - scaling
+            DLs[start][end] = sa.arcLikelihood(
+                arcPrior, sa.normalizeX(data[start:end+1], linearSampling=linearSampling)) - scaling
     return DLs
 
 
@@ -63,7 +64,8 @@ def runViterbi(data, arcPrior, lengthPrior, MAPs=None):
             llCurrent = MAPs[arcStart][arcEnd]["LL"]
             arcLength = arcEnd-arcStart
             # logp([arcStart,arcEnd] in Z | [~,arcEnd] in Z)
-            llLength = math.log(lengthPrior['pmf'][arcLength]/lengthNormalization) if arcLength <= maxLength else -math.inf
+            llLength = math.log(lengthPrior['pmf'][arcLength] /
+                                lengthNormalization) if arcLength <= maxLength else -math.inf
             return llPrevious + llCurrent + llLength
         bestStart = max(range(max(0, arcEnd-maxLength), arcEnd), key=llMap)
         bestLL = llMap(bestStart)
@@ -74,7 +76,7 @@ def runViterbi(data, arcPrior, lengthPrior, MAPs=None):
     # Use a reverse list rather than prepending
     reversePath = [predecessors[-1]]
     while reversePath[-1][0] is not None:  # As long as we haven't reached the start
-        reversePath.append(predecessor[reversePath[-1][0]])
+        reversePath.append(predecessors[reversePath[-1][0]])
     path = list(reversed(reversePath))
     return path
 
@@ -87,33 +89,33 @@ def computeAlphas(arcPrior, lengthPrior, DLs):
     This uses a recursive formulation with dynamic programming.
     """
     alphaMatrix = []
-    maxLength = lengthPrior.maxLength
-    #TODO: Insert reference to recursive formula
+    # TODO: Insert reference to recursive formula
 
     # Indices are shifted by 1 compared to the doc !!!
     # alpha(0) = 0
-    alphas = [0] # Stored as log !
+    alphas = [0]  # Stored as log !
     N = len(DLs)
-    alphaMatrix = np.NINF * np.ones((N+1,N+1))
-    for n in range(0,N):
+    alphaMatrix = np.NINF * np.ones((N+1, N+1))
+    for n in range(0, N):
         # for i in range(max(0, n-maxLength), n):
         for i in range(lengthPrior.getMinIndex(n), n):
-            arcLength = n-i
             # mu(D[arcStart+1, arcEnd]) in the doc
             llikData = DLs[i][n]
             # p([arcStart,arcEnd] in Z | [~,arcEnd] in Z)
             # lambda(arcStart,arcEnd) in the doc
             try:
-                llikLength = np.log(lengthPrior.evalCond(i,n))
-            except lengthPriors.ImpossibleCondition: #lambda(arcStart,arcEnd) is ill-defined
+                llikLength = np.log(lengthPrior.evalCond(i, n))
+            except lengthPriors.ImpossibleCondition:  # lambda(arcStart,arcEnd) is ill-defined
                 llikLength = np.NINF
             # print(likData/scaling)
             alphaIncrementLog = alphas[i] + llikLength + llikData
             alphaMatrix[n][i] = alphaIncrementLog
         maxIncrementLog = max(alphaMatrix[n])
-        alpha = np.log(np.sum(np.exp(alphaMatrix[n]-maxIncrementLog))) + maxIncrementLog if maxIncrementLog != np.NINF else np.NINF
+        alpha = np.log(np.sum(np.exp(alphaMatrix[n]-maxIncrementLog))) + \
+            maxIncrementLog if maxIncrementLog != np.NINF else np.NINF
         alphas.append(alpha)
     return alphas
+
 
 def computeBetas(arcPrior, lengthPrior, DLs):
     """Perform the beta phase of modified alpha-beta algorithm.
@@ -122,36 +124,35 @@ def computeBetas(arcPrior, lengthPrior, DLs):
     assuming an arc begins at that point.
     This uses a recursive formulation with dynamic programming.
     """
-    maxLength = lengthPrior.maxLength
     betaMatrix = []
-    #TODO: Insert reference to recursive formula
-    
+    # TODO: Insert reference to recursive formula
+
     N = len(DLs)
-    betaMatrix = np.NINF * np.ones((N+1,N+1))
-    betas = [0 for foo in range(N+1)] # Stored as log
+    betaMatrix = np.NINF * np.ones((N+1, N+1))
+    betas = [0 for foo in range(N+1)]  # Stored as log
     betas[-1] = 0
-    for n in reversed(range(-1,N-1)):
+    for n in reversed(range(-1, N-1)):
         beta = 0
         # for i in range(n+2,min(N,n+maxLength+1)):
         for i in range(n+2, lengthPrior.getMaxIndex(n)+1):
-            arcLength = i-n
             # mu(D[arcStart+1, arcEnd]) in the doc
             llikData = DLs[n+1][i]
             # p([arcStart,arcEnd] in Z | [~,arcEnd] in Z)
             # lambda'(arcStart,arcEnd) in the doc
             try:
-                llikLength =  np.log(lengthPrior.evalCond(n+1,i))
-            except lengthPriors.ImpossibleCondition: #lambda(arcStart,arcEnd) is ill-defined
+                llikLength = np.log(lengthPrior.evalCond(n+1, i))
+            except lengthPriors.ImpossibleCondition:  # lambda(arcStart,arcEnd) is ill-defined
                 llikLength = np.NINF
             betaIncrementLog = betas[i+1] + llikData + llikLength
             betaMatrix[n][i] = betaIncrementLog
-        
+
         maxIncrementLog = max(betaMatrix[n])
-        beta = np.log(np.sum(np.exp(betaMatrix[n]-maxIncrementLog))) + maxIncrementLog if maxIncrementLog != np.NINF else np.NINF
+        beta = np.log(np.sum(np.exp(betaMatrix[n]-maxIncrementLog))) + \
+            maxIncrementLog if maxIncrementLog != np.NINF else np.NINF
         betas[n+1] = beta
-    
+
     return betas
-    
+
 
 def runAlphaBeta(data, arcPrior, lengthPrior, DLs=None, linearSampling=True):
     """Run the alpha-beta algorithm to compute posterior marginals on arc boundaries."""
@@ -161,10 +162,4 @@ def runAlphaBeta(data, arcPrior, lengthPrior, DLs=None, linearSampling=True):
     alphas = computeAlphas(arcPrior, lengthPrior, DLs)
     betas = computeBetas(arcPrior, lengthPrior, DLs)
 
-    #print(np.round(alphas,3))
-    #print(np.round(betas,3))
-    
-
-    return np.exp([alpha + beta - alphas[-1] for (alpha,beta) in zip(alphas,betas)])
-
-
+    return np.exp([alpha + beta - alphas[-1] for (alpha, beta) in zip(alphas, betas)])
