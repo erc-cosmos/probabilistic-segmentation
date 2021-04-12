@@ -1,6 +1,7 @@
 """Tests for the dynamicComputation module."""
 import hypothesis
 import hypothesis.strategies as st
+import numpy as np
 
 import dynamicComputation as dc
 import syntheticData as sd
@@ -33,3 +34,13 @@ def test_marginals_are_probability(data):
     lengthPrior = lengthPriors.NormalLengthPrior(15, 5, list(range(len(data))), maxLength=20)
     posteriorMarginals = dc.runAlphaBeta(data, arcPrior, lengthPrior)
     assert all(0 <= p <= 1 for p in posteriorMarginals)
+
+
+@hypothesis.settings(deadline=2000, max_examples=20)
+@hypothesis.given(features)
+def test_dataLikelihood_is_upper_triangular(data):
+    """Check that the dataLikelihood matrix is (strictly) upper triangular."""
+    hidden, data = data
+    lengthPrior = lengthPriors.NormalLengthPrior(15, 5, list(range(len(data))), maxLength=20)
+    DLmatrix = dc.computeDataLikelihood(data, arcPrior, lengthPrior)
+    np.testing.assert_allclose(np.triu(DLmatrix, 1), DLmatrix)
