@@ -1,13 +1,14 @@
 """Tests for the dynamicComputation module."""
-import hypothesis
-import hypothesis.strategies as st
-import numpy as np
+import functools
 
 import dynamicComputation as dc
-import syntheticData as sd
+import hypothesis
+import hypothesis.strategies as st
 import lengthPriors
+import numpy as np
+import syntheticData as sd
+
 from defaultVars import arcPrior
-import functools
 
 means = st.floats(min_value=0, allow_infinity=False)
 stddevs = st.floats(min_value=1, exclude_min=True, allow_infinity=False)
@@ -44,3 +45,4 @@ def test_dataLikelihood_is_upper_triangular(data):
     lengthPrior = lengthPriors.NormalLengthPrior(15, 5, list(range(len(data))), maxLength=20)
     DLmatrix = dc.computeDataLikelihood(data, arcPrior, lengthPrior)
     np.testing.assert_allclose(np.triu(DLmatrix, 1), DLmatrix)
+    assert np.all(np.array(DLmatrix) <= 0)

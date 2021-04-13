@@ -16,6 +16,41 @@ pieceLengths = st.integers(min_value=2, max_value=10000)
 empiricalPriors = st.builds(lengthPriors.EmpiricalLengthPrior,
                             dataLength=pieceLengths,
                             data=segmentLengthSets)
+indices = st.integers(min_value=0)
+
+
+@st.composite
+def continuousPriorsWithIndices(draw, priorStrategy=normalPriors):
+    """Generate a continuous prior and an index into it."""
+    prior = draw(priorStrategy.filter(lambda p: p.x != []))
+    index = draw(st.integers(min_value=0, max_value=len(prior.x)-1))
+    return (prior, index)
+
+
+@st.composite
+def discretePriorsWithIndices(draw, priorStrategy=empiricalPriors):
+    """Generate a continuous prior and an index into it."""
+    prior = draw(priorStrategy.filter(lambda p: p.dataLength != 0))
+    index = draw(st.integers(min_value=0, max_value=prior.dataLength-1))
+    return (prior, index)
+
+
+@st.composite
+def continuousPriorsWithInvalidIndices(draw, priorStrategy=normalPriors):
+    """Generate a continuous prior and an index into it."""
+    prior = draw(priorStrategy)
+    index = draw(st.integers(max_value=-1) |
+                 st.integers(min_value=len(prior.x)))
+    return (prior, index)
+
+
+@st.composite
+def discretePriorsWithInvalidIndices(draw, priorStrategy=empiricalPriors):
+    """Generate a continuous prior and an index into it."""
+    prior = draw(priorStrategy)
+    index = draw(st.integers(max_value=-1) |
+                 st.integers(min_value=prior.dataLength))
+    return (prior, index)
 
 
 @hypothesis.given(normalPriors,
@@ -75,3 +110,80 @@ def test_empirical_distribution_is_distribution(segmentLengthSet):
     dist = lengthPriors.inferDiscreteDistribution(segmentLengthSet)
     assert all(0 <= p <= 1 for p in dist.values())
     assert sum(dist.values()) == pytest.approx(1)
+
+
+@hypothesis.given(discretePriorsWithIndices())
+def test_discrete_min_index_in_data(priorandposition):
+    """Check that min index is within the data range for discrete priors."""
+    prior, position = priorandposition
+    minpos = prior.getMinIndex(position)
+    assert 0 <= minpos < prior.dataLength
+
+
+@hypothesis.given(continuousPriorsWithIndices())
+def test_continuous_min_index_in_data(priorandposition):
+    """Check that min index is within the data range for continuous priors."""
+    prior, position = priorandposition
+    minpos = prior.getMinIndex(position)
+    assert 0 <= minpos < len(prior.x)
+
+
+@hypothesis.given(discretePriorsWithInvalidIndices())
+def test_discrete_min_reject_invalid_input(priorandposition):
+    """Check that min index rejects invalid arguments."""
+    prior, position = priorandposition
+    with pytest.raises(IndexError):
+        prior.getMinIndex(position)
+
+
+@hypothesis.given(continuousPriorsWithInvalidIndices())
+def test_continuous_min_reject_invalid_input(priorandposition):
+    """Check that min index rejects invalid arguments."""
+    prior, position = priorandposition
+    with pytest.raises(IndexError):
+        prior.getMinIndex(position)
+
+
+@hypothesis.given(discretePriorsWithIndices())
+def test_discrete_max_index_in_data(priorandposition):
+    """Check that max index is within the data range for discrete priors."""
+    prior, position = priorandposition
+    maxpos = prior.getMaxIndex(position)
+    assert 0 <= maxpos < prior.dataLength
+
+
+@hypothesis.given(continuousPriorsWithIndices())
+def test_continuous_max_index_in_data(priorandposition):
+    """Check that max index is within the data range for continuous priors."""
+    prior, position = priorandposition
+    maxpos = prior.getMaxIndex(position)
+    assert 0 <= maxpos < len(prior.x)
+
+
+@hypothesis.given(discretePriorsWithInvalidIndices())
+def test_discrete_max_reject_invalid_input(priorandposition):
+    """Check that max index rejects invalid arguments."""
+    prior, position = priorandposition
+    with pytest.raises(IndexError):
+        prior.getMaxIndex(position)
+
+
+@hypothesis.given(continuousPriorsWithInvalidIndices())
+def test_continuous_max_reject_invalid_input(priorandposition):
+    """Check that max index rejects invalid arguments."""
+    prior, position = priorandposition
+    with pytest.raises(IndexError):
+        prior.getMaxIndex(position)
+
+
+@hypothesis.given(continuousPriorsWithIndices(), st.data())
+def test_min_evolves_inversly_with_maxlength_(priorandposition, increment):
+    """Check that changing maxLength can only cause inverse change to min index."""
+    prior, position = priorandposition
+    initialMin = prior.getMinIndex(position)
+    increment = increment.draw(st.floats(min_value=prior.maxLength))
+    hypothesis.assume(increment != 0)
+    prior.maxLength += increment
+    newMin = prior.getMinIndex(position)
+    minDifference = newMin - initialMin
+    assert (increment >= 0 and minDifference <= 0) or (increment <= 0 and minDifference >= 0)

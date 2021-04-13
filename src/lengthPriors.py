@@ -55,12 +55,16 @@ class ContinuousLengthPrior:
 
     def getMaxIndex(self, i):
         """Return the maximum arc end with non-null prior for an arc starting at i."""
+        if i < 0:
+            raise IndexError("Negative indexing not supported")
         xmax = self.x[i] + self.maxLength
         imax = i + next((it for it, x in enumerate(self.x[i:]) if x > xmax), len(self.x[i:])-1)
         return imax
 
     def getMinIndex(self, j):
         """Return the minimum arc start with non-null prior for an arc ending at i."""
+        if j < 0:
+            raise IndexError("Negative indexing not supported")
         xmin = self.x[j] - self.maxLength
         imin = next((it-1 for it, x in enumerate(self.x[:j]) if x > xmin), 0)
         if imin == -1:
@@ -129,10 +133,18 @@ class DiscreteLengthPrior:
 
     def getMaxIndex(self, i):
         """Return the maximum arc end with non-null prior for an arc starting at i."""
+        if i < 0:
+            raise IndexError("Negative indexing not supported")
+        elif i >= self.dataLength:
+            raise IndexError("Arc end out bounds")
         return min(i+self.maxLength-1, self.dataLength-1)
 
     def getMinIndex(self, j):
         """Return the minimum arc start with non-null prior for an arc ending at i."""
+        if j < 0:
+            raise IndexError("Negative indexing not supported")
+        elif j >= self.dataLength:
+            raise IndexError("Arc end out bounds")
         return max(j-self.maxLength, 0)
 
     def scalingFactor(self, i):
