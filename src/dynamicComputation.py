@@ -130,13 +130,13 @@ def computeBetas(arcPrior, lengthPrior, DLs):
     N = len(DLs)
     betaMatrix = np.NINF * np.ones((N+1, N+1))
     betas = [0 for foo in range(N+1)]  # Stored as log
-    betas[-1] = 0
-    for n in reversed(range(-1, N-1)):
+    betas[N] = 0  # There is no more data to be observed past the end
+    for n in reversed(range(0, N)):
         beta = 0
         # for i in range(n+2,min(N,n+maxLength+1)):
-        for i in range(n+2, lengthPrior.getMaxIndex(n)+1):
+        for i in range(n+1, lengthPrior.getMaxIndex(n)+1):
             # mu(D[arcStart+1, arcEnd]) in the doc
-            llikData = DLs[n+1][i]
+            llikData = DLs[n][i]
             # p([arcStart,arcEnd] in Z | [~,arcEnd] in Z)
             # lambda'(arcStart,arcEnd) in the doc
             try:
@@ -147,9 +147,10 @@ def computeBetas(arcPrior, lengthPrior, DLs):
             betaMatrix[n][i] = betaIncrementLog
 
         maxIncrementLog = max(betaMatrix[n])
-        beta = np.log(np.sum(np.exp(betaMatrix[n]-maxIncrementLog))) + \
-            maxIncrementLog if maxIncrementLog != np.NINF else np.NINF
-        betas[n+1] = beta
+        beta = np.log(np.sum(np.exp(betaMatrix[n]-maxIncrementLog))) + maxIncrementLog \
+            if maxIncrementLog != np.NINF else np.NINF
+        assert beta <= 0
+        betas[n] = beta
 
     return betas
 
@@ -162,4 +163,4 @@ def runAlphaBeta(data, arcPrior, lengthPrior, DLs=None, linearSampling=True):
     alphas = computeAlphas(arcPrior, lengthPrior, DLs)
     betas = computeBetas(arcPrior, lengthPrior, DLs)
 
-    return np.exp([alpha + beta - alphas[-1] for (alpha, beta) in zip(alphas, betas)])
+    return np.exp([alpha + beta - alphas[-1] for (alpha, beta) in zip(alphas[1:], betas)])
