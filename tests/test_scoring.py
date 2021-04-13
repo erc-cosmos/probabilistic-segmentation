@@ -25,7 +25,7 @@ def test_countMatches_reflexively(ref, tolerance):
 @hypothesis.given(segmentations, segmentations)
 def test_countMatches_strict_not_max(ref, guess):
     """Check that different sets yield do not yield maximal score when tolerance is 0."""
-    hypothesis.assume(sorted(ref) != sorted(guess))
+    hypothesis.assume(set(ref) != set(guess))
     assert scoring.countMatches(ref, guess, 0) < max(len(set(ref)), len(set(guess)))
 
 

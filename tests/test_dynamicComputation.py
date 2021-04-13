@@ -34,7 +34,32 @@ def test_marginals_are_probability(data):
     hidden, data = data
     lengthPrior = lengthPriors.NormalLengthPrior(15, 5, list(range(len(data))), maxLength=20)
     posteriorMarginals = dc.runAlphaBeta(data, arcPrior, lengthPrior)
-    assert all(0 <= p <= 1 for p in posteriorMarginals)
+    np.testing.assert_allclose(np.maximum(0, posteriorMarginals), posteriorMarginals)
+    np.testing.assert_allclose(np.minimum(1, posteriorMarginals), posteriorMarginals)
+
+
+# alphabeta takes a little longer than most tests
+@hypothesis.settings(deadline=2000, max_examples=20)
+@hypothesis.given(features)
+def test_beta_are_logprobability(data):
+    """Check that betas are log-probabilities."""
+    hidden, data = data
+    lengthPrior = lengthPriors.NormalLengthPrior(15, 5, list(range(len(data))), maxLength=20)
+    DLs = dc.computeDataLikelihood(data, arcPrior, lengthPrior)
+    betas = dc.computeBetas(arcPrior, lengthPrior, DLs)
+    assert all([0 >= beta for beta in betas])
+
+
+# alphabeta takes a little longer than most tests
+@hypothesis.settings(deadline=2000, max_examples=20)
+@hypothesis.given(features)
+def test_alpha_are_logprobability(data):
+    """Check that alphas are log-probabilities."""
+    hidden, data = data
+    lengthPrior = lengthPriors.NormalLengthPrior(15, 5, list(range(len(data))), maxLength=20)
+    DLs = dc.computeDataLikelihood(data, arcPrior, lengthPrior)
+    alphas = dc.computeAlphas(arcPrior, lengthPrior, DLs)
+    assert all([0 >= alpha for alpha in alphas])
 
 
 @hypothesis.settings(deadline=2000, max_examples=20)
@@ -45,4 +70,4 @@ def test_dataLikelihood_is_upper_triangular(data):
     lengthPrior = lengthPriors.NormalLengthPrior(15, 5, list(range(len(data))), maxLength=20)
     DLmatrix = dc.computeDataLikelihood(data, arcPrior, lengthPrior)
     np.testing.assert_allclose(np.triu(DLmatrix, 1), DLmatrix)
-    assert np.all(np.array(DLmatrix) <= 0)
+    assert np.all(np.array(DLmatrix) <= 0)  # Also assert logproba
