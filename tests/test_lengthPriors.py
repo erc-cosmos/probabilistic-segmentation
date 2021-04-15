@@ -70,7 +70,7 @@ def test_proba_Normal(distribution, i, j):
 def test_proba_sum_Normal_linear(distribution, i):
     """Check that evalCond sums to 1 over j (if i is possible)."""
     try:
-        result = sum(distribution.evalCond(i, i+j+1)
+        result = sum(distribution.evalCond(i, j)
                      for j in range(len(distribution.x)))
         assert result == pytest.approx(1, abs=1e-10) or result == 0
     except lengthPriors.ImpossibleCondition:
@@ -82,8 +82,8 @@ def test_proba_sum_Normal_linear(distribution, i):
 def test_proba_sum_Empirical_linear(distribution, i):
     """Check that evalCond sums to 1 over j (if i is possible)."""
     try:
-        result = sum(distribution.evalCond(i, j)
-                     for j in range(distribution.dataLength))
+        result = sum([distribution.evalCond(i, j)
+                     for j in range(distribution.dataLength)])
         assert result == pytest.approx(1, abs=1e-10) or result == 0
     except lengthPriors.ImpossibleCondition:
         # TODO: Check that it is indeed an impossible condition
@@ -181,7 +181,7 @@ def test_min_evolves_inversly_with_maxlength_(priorandposition, increment):
     """Check that changing maxLength can only cause inverse change to min index."""
     prior, position = priorandposition
     initialMin = prior.getMinIndex(position)
-    increment = increment.draw(st.floats(min_value=prior.maxLength))
+    increment = increment.draw(st.floats(min_value=-prior.maxLength, max_value=10000, exclude_min=True))
     hypothesis.assume(increment != 0)
     prior.maxLength += increment
     newMin = prior.getMinIndex(position)

@@ -3,6 +3,7 @@ import singleArc as sa
 import math
 import lengthPriors
 import numpy as np
+import itertools as itt
 
 
 def computeMAPs(data, arcPrior, lengthPrior):
@@ -32,15 +33,20 @@ def computeDataLikelihood(data, arcPrior, lengthPrior, linearSampling=True):
     A slice of data is indexed by start and end index and is valid
     if start<end and if its length is less than the specified maximum.
     """
+    N = len(data)
     # Initialize log-Likelihood matrix
-    DLs = [[0 for end in range(len(data))] for start in range(len(data))]
+    DLs = np.full((N, N), np.nan)
 
     # Fill up subdiagonals (rest is zeroes)
-    for start in range(len(data)):
-        for end in range(start+1, lengthPrior.getMaxIndex(start)+1):
-            scaling = 0
-            DLs[start][end] = sa.arcLikelihood(
-                arcPrior, sa.normalizeX(data[start:end+1], linearSampling=linearSampling)) - scaling
+    for start, end in itt.combinations_with_replacement(range(N), r=2):
+        # (log-)Likelihood of the data assuming there is an arc
+        llikData = sa.arcLikelihood(arcPrior, sa.normalizeX(data[start:end+1], linearSampling=linearSampling))
+        try:
+            # (log-)Likelihood of the arc assuming its start
+            llikLength = np.log(lengthPrior.evalCond(start, end))
+        except lengthPriors.ImpossibleCondition:  # The arc's start is impossible
+            llikLength = np.nan
+        DLs[start, end] = llikData + llikLength
     return DLs
 
 
@@ -92,27 +98,28 @@ def computeAlphas(arcPrior, lengthPrior, DLs):
     # TODO: Insert reference to recursive formula
 
     # Indices are shifted by 1 compared to the doc !!!
-    # alpha(0) = 0
+    # The data is assumed to start with an arc
     alphas = [0]  # Stored as log !
     N = len(DLs)
-    alphaMatrix = np.NINF * np.ones((N+1, N+1))
+    alphaMatrix = np.full((N+1, N+1), np.nan)
     for n in range(0, N):
-        # for i in range(max(0, n-maxLength), n):
-        for i in range(lengthPrior.getMinIndex(n), n):
-            # mu(D[arcStart+1, arcEnd]) in the doc
-            llikData = DLs[i][n]
-            # p([arcStart,arcEnd] in Z | [~,arcEnd] in Z)
-            # lambda(arcStart,arcEnd) in the doc
-            try:
-                llikLength = np.log(lengthPrior.evalCond(i, n))
-            except lengthPriors.ImpossibleCondition:  # lambda(arcStart,arcEnd) is ill-defined
-                llikLength = np.NINF
-            # print(likData/scaling)
-            alphaIncrementLog = alphas[i] + llikLength + llikData
-            alphaMatrix[n][i] = alphaIncrementLog
-        maxIncrementLog = max(alphaMatrix[n])
-        alpha = np.log(np.sum(np.exp(alphaMatrix[n]-maxIncrementLog))) + \
+        minIndex = lengthPrior.getMinIndex(n)
+        llArc = DLs[minIndex:n+1, n]
+        alphaComponents = alphas[minIndex:n+1] + llArc
+        alphaMatrix[minIndex:n+1, n] = alphaComponents
+        maxIncrementLog = np.nanmax(alphaComponents)
+        alpha = np.log(np.nansum(np.exp(alphaComponents - maxIncrementLog))) + \
             maxIncrementLog if maxIncrementLog != np.NINF else np.NINF
+        # for i in range(max(0, n-maxLength), n):
+        # for i in range(lengthPrior.getMinIndex(n), n+1):
+        #     # mu(D[n, i]) x lambda(n,i) in the doc
+        #     llArc = DLs[n, i]
+
+        #     alphaIncrementLog = alphas[i] + llArc
+        #     alphaMatrix[n, i] = alphaIncrementLog
+        # maxIncrementLog = max(alphaMatrix[n])
+        # alpha = np.log(np.nansum(np.exp(alphaMatrix[n, ] - maxIncrementLog))) + \
+        #     maxIncrementLog if maxIncrementLog != np.NINF else np.NINF
         alphas.append(alpha)
     return alphas
 
@@ -128,28 +135,25 @@ def computeBetas(arcPrior, lengthPrior, DLs):
     # TODO: Insert reference to recursive formula
 
     N = len(DLs)
-    betaMatrix = np.NINF * np.ones((N+1, N+1))
-    betas = [0 for foo in range(N+1)]  # Stored as log
+    betaMatrix = np.full((N+1, N+1), np.nan)
+    betas = np.full(N+1, np.nan)
+    # betas = [0 for foo in range(N+1)]  # Stored as log
     betas[N] = 0  # There is no more data to be observed past the end
-    for n in reversed(range(0, N)):
-        beta = 0
-        # for i in range(n+2,min(N,n+maxLength+1)):
-        for i in range(n+1, lengthPrior.getMaxIndex(n)+1):
-            # mu(D[arcStart+1, arcEnd]) in the doc
-            llikData = DLs[n][i]
-            # p([arcStart,arcEnd] in Z | [~,arcEnd] in Z)
-            # lambda'(arcStart,arcEnd) in the doc
-            try:
-                llikLength = np.log(lengthPrior.evalCond(n+1, i))
-            except lengthPriors.ImpossibleCondition:  # lambda(arcStart,arcEnd) is ill-defined
-                llikLength = np.NINF
-            betaIncrementLog = betas[i+1] + llikData + llikLength
-            betaMatrix[n][i] = betaIncrementLog
+    for n in reversed(range(0, N)):  # This is the backward pass
+        maxIndex = lengthPrior.getMaxIndex(n)
+        # i = range(n, lengthPrior.getMaxIndex(n)+1)
+        betaComponents = betas[(n+1):(maxIndex+2)] + DLs[n, n:maxIndex+1]
+        betaMatrix[n, n:maxIndex+1] = betaComponents
+        # for i in range(n, lengthPrior.getMaxIndex(n)+1):
+        #     # mu(D[arcStart, arcEnd]) x lambda(arcStart,arcEnd) in the doc
+        #     llArc = DLs[n, i]
+        #     betaIncrementLog = betas[i+1] + llArc
+        #     betaMatrix[n, i] = betaIncrementLog
 
-        maxIncrementLog = max(betaMatrix[n])
-        beta = np.log(np.sum(np.exp(betaMatrix[n]-maxIncrementLog))) + maxIncrementLog \
+        maxIncrementLog = np.nanmax(betaComponents)
+        beta = np.log(np.nansum(np.exp(betaComponents - maxIncrementLog))) + maxIncrementLog \
             if maxIncrementLog != np.NINF else np.NINF
-        assert beta <= 0
+
         betas[n] = beta
 
     return betas
@@ -163,4 +167,4 @@ def runAlphaBeta(data, arcPrior, lengthPrior, DLs=None, linearSampling=True):
     alphas = computeAlphas(arcPrior, lengthPrior, DLs)
     betas = computeBetas(arcPrior, lengthPrior, DLs)
 
-    return np.exp([alpha + beta - alphas[-1] for (alpha, beta) in zip(alphas[1:], betas)])
+    return np.exp([alpha + beta - alphas[-1] for (alpha, beta) in zip(alphas[1:], betas[1:])])

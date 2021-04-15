@@ -42,7 +42,7 @@ class ContinuousLengthPrior:
 
         if xj > self.maxLength:  # Cap xj at max
             xj = self.maxLength
-        if xjpred > self.maxLength:  # Cap xj at max
+        if xjpred > self.maxLength:  # Cap xjpred at max
             xjpred = self.maxLength
 
         c0, cjpred, cj, cmax = self.cdf([0, xjpred, xj, xmax])
@@ -52,6 +52,11 @@ class ContinuousLengthPrior:
         if scaling == 0:
             raise ImpossibleCondition("Conditioning on impossible event")
         return (cj-cjpred)/scaling
+
+    @property
+    def dataLength(self):
+        """Return the total length of the data."""
+        return self.x[-1]-self.x[0]
 
     def getMaxIndex(self, i):
         """Return the maximum arc end with non-null prior for an arc starting at i."""
@@ -122,9 +127,9 @@ class DiscreteLengthPrior:
         i -- known boundary index
         j -- examined index
         """
-        if j > self.dataLength or j <= i:
+        if j > self.dataLength or j < i:
             return 0
-        length = j-i
+        length = j-i+1
         if self.dataLength - i > self.maxLength:
             scaling = 1
         else:
@@ -149,7 +154,7 @@ class DiscreteLengthPrior:
 
     def scalingFactor(self, i):
         """Return the scaling factor for truncating the underlying the distribution."""
-        result = sum(self.distrib.get(k, 0) for k in range(self.dataLength-i))
+        result = sum(self.distrib.get(k, 0) for k in range(self.dataLength-i+1))
         if result == 0:
             raise ImpossibleCondition("Conditioning on impossible event")
         return result

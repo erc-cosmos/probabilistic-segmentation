@@ -7,6 +7,7 @@ import hypothesis.strategies as st
 import lengthPriors
 import numpy as np
 import syntheticData as sd
+import pytest
 
 from defaultVars import arcPrior
 
@@ -21,8 +22,7 @@ def normalPriors(dataLength):
                      means, stddevs, st.integers(min_value=2, max_value=50))
 
 
-segmentLengthSets = st.lists(st.integers(min_value=2, max_value=30), min_size=2, max_size=5)
-
+segmentLengthSets = st.lists(st.integers(min_value=2, max_value=15), min_size=2, max_size=5)
 features = st.builds(functools.partial(sd.genData, arcPrior=arcPrior), segmentLengthSets)
 
 
@@ -34,8 +34,8 @@ def test_marginals_are_probability(data):
     hidden, data = data
     lengthPrior = lengthPriors.NormalLengthPrior(15, 5, list(range(len(data))), maxLength=20)
     posteriorMarginals = dc.runAlphaBeta(data, arcPrior, lengthPrior)
-    np.testing.assert_allclose(np.maximum(0, posteriorMarginals), posteriorMarginals)
-    np.testing.assert_allclose(np.minimum(1, posteriorMarginals), posteriorMarginals)
+    assert 0 <= np.nanmin(posteriorMarginals)
+    assert 1.0001 >= np.nanmax(posteriorMarginals)
 
 
 # alphabeta takes a little longer than most tests
@@ -47,7 +47,7 @@ def test_beta_are_logprobability(data):
     lengthPrior = lengthPriors.NormalLengthPrior(15, 5, list(range(len(data))), maxLength=20)
     DLs = dc.computeDataLikelihood(data, arcPrior, lengthPrior)
     betas = dc.computeBetas(arcPrior, lengthPrior, DLs)
-    assert all([0 >= beta for beta in betas])
+    assert 0 >= np.nanmax(betas)
 
 
 # alphabeta takes a little longer than most tests
@@ -69,5 +69,61 @@ def test_dataLikelihood_is_upper_triangular(data):
     hidden, data = data
     lengthPrior = lengthPriors.NormalLengthPrior(15, 5, list(range(len(data))), maxLength=20)
     DLmatrix = dc.computeDataLikelihood(data, arcPrior, lengthPrior)
-    np.testing.assert_allclose(np.triu(DLmatrix, 1), DLmatrix)
-    assert np.all(np.array(DLmatrix) <= 0)  # Also assert logproba
+
+    np.testing.assert_equal(DLmatrix[np.tril_indices(len(data), k=-1)], np.nan)
+    assert np.nanmax(DLmatrix) <= 0  # Also assert logproba
+
+
+@hypothesis.settings(deadline=2000, max_examples=20)
+@hypothesis.given(features)
+def test_alphaN_is_beta0(data):
+    """Check that the last value of alpha is the same as the first value of beta."""
+    hidden, data = data
+    lengthPrior = lengthPriors.NormalLengthPrior(15, 5, list(range(len(data))), maxLength=20)
+    DLs = dc.computeDataLikelihood(data, arcPrior, lengthPrior)
+    alphas = dc.computeAlphas(arcPrior, lengthPrior, DLs)
+    betas = dc.computeBetas(arcPrior, lengthPrior, DLs)
+    assert alphas[-1] == pytest.approx(betas[0])
+    assert alphas[-1] <= 0
+
+
+@hypothesis.settings(deadline=2000, max_examples=20)
+@hypothesis.given(features)
+def test_alpha_length(data):
+    """Check that the length of alphas is the expected length."""
+    hidden, data = data
+    lengthPrior = lengthPriors.NormalLengthPrior(15, 5, list(range(len(data))), maxLength=20)
+    DLs = dc.computeDataLikelihood(data, arcPrior, lengthPrior)
+    alphas = dc.computeAlphas(arcPrior, lengthPrior, DLs)
+    assert len(alphas) == len(data) + 1
+
+
+@hypothesis.settings(deadline=2000, max_examples=20)
+@hypothesis.given(features)
+def test_beta_length(data):
+    """Check that the length of betas is the expected length."""
+    hidden, data = data
+    lengthPrior = lengthPriors.NormalLengthPrior(15, 5, list(range(len(data))), maxLength=20)
+    DLs = dc.computeDataLikelihood(data, arcPrior, lengthPrior)
+    betas = dc.computeBetas(arcPrior, lengthPrior, DLs)
+    assert len(betas) == len(data) + 1
+
+
+@hypothesis.settings(deadline=2000, max_examples=20)
+@hypothesis.given(features)
+def test_marginals_sum_over_minimum_segment_count(data):
+    """Check that the marginals sum over the minimum number of boundaries."""
+    hidden, data = data
+    lengthPrior = lengthPriors.EmpiricalLengthPrior(range(11), dataLength=len(data), maxLength=10)
+    marginals = dc.runAlphaBeta(data, arcPrior, lengthPrior)
+    assert sum(marginals) >= np.ceil(lengthPrior.dataLength/float(lengthPrior.maxLength+1))
+
+
+@hypothesis.settings(deadline=2000, max_examples=20)
+@hypothesis.given(features)
+def test_marginals_sum_over_minimum_segment_count_with_NormalPrior(data):
+    """Check that the marginals sum over the minimum number of boundaries."""
+    hidden, data = data
+    lengthPrior = lengthPriors.NormalLengthPrior(15, 5, list(range(len(data))), maxLength=20)
+    marginals = dc.runAlphaBeta(data, arcPrior, lengthPrior)
+    assert sum(marginals) >= np.ceil(lengthPrior.dataLength/float(lengthPrior.maxLength+1))
