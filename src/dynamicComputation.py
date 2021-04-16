@@ -17,8 +17,6 @@ def computeMAPs(data, arcPrior, lengthPrior):
     MAPs = [[{"LL": None, "Arc": None} for end in range(len(data))] for start in range(len(data))]
 
     # Fill up subdiagonals (rest is zeroes)
-    # for end in range(len(data)):
-    #     for start in range(max(0, end - maxLength), end):
     for start in range(len(data)):
         for end in range(start+1, lengthPrior.getMaxIndex(start)+1):
             MAPs[start][end] = sa.arcMAP(arcPrior, sa.normalizeX(data[start:end+1]))
@@ -26,12 +24,12 @@ def computeMAPs(data, arcPrior, lengthPrior):
 
 
 def computeDataLikelihood(data, arcPrior, lengthPrior, linearSampling=True):
-    """Construct log-likelihood matrix.
+    """Construct log-likelihood transition matrix.
 
-    This matrix lists the log-likelihood as an undivided arc
-    of all valid slices of data (0 otherwise).
-    A slice of data is indexed by start and end index and is valid
-    if start<end and if its length is less than the specified maximum.
+    This matrix lists the log-likelihood as an undivided arc conditionned on its start
+    of all valid slices of data.
+    A slice of data is indexed by start and end index (inclusive) and is valid
+    if start<=end and if its length is less than the specified maximum.
     """
     N = len(data)
     # Initialize log-Likelihood matrix
@@ -94,34 +92,21 @@ def computeAlphas(arcPrior, lengthPrior, DLs):
     and having an arc end at that point.
     This uses a recursive formulation with dynamic programming.
     """
-    alphaMatrix = []
     # TODO: Insert reference to recursive formula
 
     # Indices are shifted by 1 compared to the doc !!!
     # The data is assumed to start with an arc
     alphas = [0]  # Stored as log !
     N = len(DLs)
-    alphaMatrix = np.full((N+1, N+1), np.nan)
     for n in range(0, N):
         minIndex = lengthPrior.getMinIndex(n)
         llArc = DLs[minIndex:n+1, n]
         alphaComponents = alphas[minIndex:n+1] + llArc
-        alphaMatrix[minIndex:n+1, n] = alphaComponents
         maxIncrementLog = np.nanmax(alphaComponents)
         alpha = np.log(np.nansum(np.exp(alphaComponents - maxIncrementLog))) + \
             maxIncrementLog if maxIncrementLog != np.NINF else np.NINF
-        # for i in range(max(0, n-maxLength), n):
-        # for i in range(lengthPrior.getMinIndex(n), n+1):
-        #     # mu(D[n, i]) x lambda(n,i) in the doc
-        #     llArc = DLs[n, i]
-
-        #     alphaIncrementLog = alphas[i] + llArc
-        #     alphaMatrix[n, i] = alphaIncrementLog
-        # maxIncrementLog = max(alphaMatrix[n])
-        # alpha = np.log(np.nansum(np.exp(alphaMatrix[n, ] - maxIncrementLog))) + \
-        #     maxIncrementLog if maxIncrementLog != np.NINF else np.NINF
         alphas.append(alpha)
-    return alphas
+    return np.array(alphas)
 
 
 def computeBetas(arcPrior, lengthPrior, DLs):
@@ -131,25 +116,14 @@ def computeBetas(arcPrior, lengthPrior, DLs):
     assuming an arc begins at that point.
     This uses a recursive formulation with dynamic programming.
     """
-    betaMatrix = []
     # TODO: Insert reference to recursive formula
 
     N = len(DLs)
-    betaMatrix = np.full((N+1, N+1), np.nan)
     betas = np.full(N+1, np.nan)
-    # betas = [0 for foo in range(N+1)]  # Stored as log
     betas[N] = 0  # There is no more data to be observed past the end
     for n in reversed(range(0, N)):  # This is the backward pass
         maxIndex = lengthPrior.getMaxIndex(n)
-        # i = range(n, lengthPrior.getMaxIndex(n)+1)
         betaComponents = betas[(n+1):(maxIndex+2)] + DLs[n, n:maxIndex+1]
-        betaMatrix[n, n:maxIndex+1] = betaComponents
-        # for i in range(n, lengthPrior.getMaxIndex(n)+1):
-        #     # mu(D[arcStart, arcEnd]) x lambda(arcStart,arcEnd) in the doc
-        #     llArc = DLs[n, i]
-        #     betaIncrementLog = betas[i+1] + llArc
-        #     betaMatrix[n, i] = betaIncrementLog
-
         maxIncrementLog = np.nanmax(betaComponents)
         beta = np.log(np.nansum(np.exp(betaComponents - maxIncrementLog))) + maxIncrementLog \
             if maxIncrementLog != np.NINF else np.NINF
