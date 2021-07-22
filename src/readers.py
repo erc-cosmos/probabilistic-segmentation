@@ -1,120 +1,203 @@
-#!/bin/python3
-
 import csv
 import numpy as np
 import os
-import itertools as itt
+from collections import namedtuple
+from scipy.interpolate import UnivariateSpline
 
-class Performance:
-    def __init__(self, interpret, piece, dataType, data):
-        self.interpret = interpret
-        self.piece = piece
-        self.data = {dataType:data}
+CosmonoteLoudness = namedtuple("Loudness", ['time', 'loudness'])
+CosmonoteAnnotation = namedtuple("Annotation", ['author', 'boundaries'])
+CosmonoteAnnotationSet = namedtuple("AnnotationSet", ['audio', 'loudness', 'tempo'])
+CosmonoteData = namedtuple("CosmonotePiece", ['piece_id', 'beats', 'tempo', 'loudness', 'annotations'])
 
-    def addData(self, dataType, data):
-        self.data[dataType]= data
-
-
-class AnnotatedPerformance:
-    def __init__(self, interpret, piece, dataType, data, annot):
-        self.interpret = interpret
-        self.piece = piece
-        self.data = {dataType:data}
-        self.annots = {dataType:annot}
-    
-    def addData(self, dataType, data, annot):
-        self.data = {dataType:data}
-        self.annots = {dataType:annot}
 
 def readMazurkaData(filename, preprocess=None):
     with open(filename) as csvFile:
-        csvReader = csv.reader(csvFile) 
-        #Read header
-        interpretIds = next(csvReader)[3:] # First 3 columns are not relevant to us
-        #zip to read colum by column
-        data = zip(*(map(float,row[3:]) for row in csvReader))
+        csvReader = csv.reader(csvFile)
+        # Read header
+        interpretIds = next(csvReader)[3:]  # First 3 columns are not relevant to us
+        # zip to read colum by column
+        data = zip(*(map(float, row[3:]) for row in csvReader))
         if preprocess is not None:
             data = preprocess(data)
         else:
             data = map(np.array, data)
-        return list(zip(interpretIds,data))
+        return list(zip(interpretIds, data))
+
 
 def preprocessTimings(timings):
-    tempo = map(lambda time : 60/np.diff(time),timings)
+    tempo = map(lambda time: 60/np.diff(time), timings)
     return tempo
+
 
 def readMazurkaTimings(filename):
     return readMazurkaData(filename, preprocess=preprocessTimings)
 
+
 def readAllMazurkaTimings(dirpath="beat_time"):
     # Retrieve all mazurka files
-    files = [os.path.join(dirpath,file) for file in os.listdir(dirpath) if os.path.splitext(file)[1]==".csv"]
+    files = [os.path.join(dirpath, file) for file in os.listdir(dirpath) if os.path.splitext(file)[1] == ".csv"]
     # Read and return them
-    return zip(files,map(readMazurkaTimings,files))
+    return zip(files, map(readMazurkaTimings, files))
+
 
 def readAllMazurkaData(dirpath="beat_dyn", preprocess=None):
     # Retrieve all mazurka files
-    files = [os.path.join(dirpath,file) for file in os.listdir(dirpath) if os.path.splitext(file)[1]==".csv"]
+    files = [os.path.join(dirpath, file) for file in os.listdir(dirpath) if os.path.splitext(file)[1] == ".csv"]
     # Read and return them
-    return list(zip(files,map(lambda f: readMazurkaData(f, preprocess=preprocess),files)))
+    return list(zip(files, map(lambda f: readMazurkaData(f, preprocess=preprocess), files)))
+
 
 def readMazurkaArcSegmentation(filename):
     with open(filename) as csvFile:
         csvReader = csv.reader(csvFile)
-        seg = [ (line[0],[int(number) for number in line[1:] if number !='']) for line in csvReader]
+        seg = [(line[0], [int(number) for number in line[1:] if number != '']) for line in csvReader]
     return seg
+
 
 def matchMazurkaSegmentation(filename, dirpath="deaf_structure_tempo", dataType='tempo'):
     if dataType == 'tempo':
-        segbasename = os.path.basename(filename.replace("beat_time","_man_seg"))
+        segbasename = os.path.basename(filename.replace("beat_time", "_man_seg"))
     elif dataType == 'loudness':
-        segbasename = os.path.basename(filename.replace("beat_dynNORM","_man_seg"))
+        segbasename = os.path.basename(filename.replace("beat_dynNORM", "_man_seg"))
     else:
         raise NotImplementedError("Unknown dataType: "+dataType)
-    segfile = os.path.join(dirpath,segbasename)
+    segfile = os.path.join(dirpath, segbasename)
     if os.path.isfile(segfile):
         return readMazurkaArcSegmentation(segfile)
     else:
         return []
 
-def readAllMazurkaTimingsAndSeg(timingPath = "beat_time", segPath = "deaf_structure_tempo"):
+
+def readAllMazurkaTimingsAndSeg(timingPath="beat_time", segPath="deaf_structure_tempo"):
     allData = []
     allTimings = readAllMazurkaTimings(timingPath)
     for filename, timings in allTimings:
-        segmentations = matchMazurkaSegmentation(filename,segPath)
+        segmentations = matchMazurkaSegmentation(filename, segPath)
         for pID, seg in segmentations:
-            tim = next((times for pIDmatch,times in timings if pID == pIDmatch), None)
+            tim = next((times for pIDmatch, times in timings if pID == pIDmatch), None)
             if tim is None:
                 print("Warning: Encountered performer without a match in timings: "+pID+" in "+filename)
             else:
-                allData.append( (filename, pID, tim, seg) )
+                allData.append((filename, pID, tim, seg))
     return allData
 
-def readAllMazurkaDataAndSeg(timingPath = "beat_dyn", segPath = "deaf_structure_loudness", preprocess=None, dataType='loudness'):
+
+def readAllMazurkaDataAndSeg(timingPath="beat_dyn", segPath="deaf_structure_loudness",
+                             preprocess=None, dataType='loudness'):
     allPerf = []
     allData = readAllMazurkaData(timingPath, preprocess=preprocess)
     for filename, timings in allData:
-        segmentations = matchMazurkaSegmentation(filename,segPath,dataType=dataType)
+        segmentations = matchMazurkaSegmentation(filename, segPath, dataType=dataType)
         for pID, seg in segmentations:
-            tim = next((times for pIDmatch,times in timings if pID == pIDmatch), None)
+            tim = next((times for pIDmatch, times in timings if pID == pIDmatch), None)
             if tim is None:
                 print("Warning: Encountered performer without a match in timings: "+pID+" in "+filename)
             else:
-                allPerf.append( (filename, pID, tim, seg) )
+                allPerf.append((filename, pID, tim, seg))
     return allPerf
 
-def readAllMultidim(paths, preprocessors, dataTypes):
-    it = iter(zip(paths,preprocessors,dataTypes))
-    path, preprocessor, dataType = next(it)
-    _,interpretData = zip(*readAllMazurkaData(path, preprocessor))
-    myDict = dict(map(lambda i: (i[0],Performance(i[0], 'foo', dataType, i[1])),
-                      itt.chain(*interpretData)))
-    for path, preprocessor, dataType in it:
-        _,interpretData = zip(*readAllMazurkaData(path, preprocessor))
-        for interpret, data in itt.chain(interpretData):
-            myDict[interpret].addData(dataType,data)
-    return list(myDict.values())
-    
+
+def read_cosmo_beats(filepath):
+    with open(filepath) as csv_file:
+        csv_reader = csv.DictReader(csv_file)
+        beats = [float(e['time']) for e in csv_reader]
+        return beats
+
+
+def read_cosmo_loudness(filepath):
+    with open(filepath) as csv_file:
+        csv_reader = csv.DictReader(csv_file)
+        loud = [CosmonoteLoudness(float(e['Time']), float(e['Loudness_smooth'])) for e in csv_reader]
+        return loud
+
+
+def read_cosmo_annotation(filepath, strengths=(2, 3, 4)):
+    with open(filepath) as csv_file:
+        csv_reader = csv.DictReader(csv_file)
+        annot = [float(e['Time']) for e in csv_reader if int(e['Strength']) in strengths]
+        return annot
+
+
+def preprocess_cosmo_loudness(loudness, beats):
+    x, y = zip(*loudness)
+    # smoothing = len(loudness)
+    interpol = UnivariateSpline(x, y, s=0)
+    smoothed = interpol(beats)
+
+    # smoothed = []
+    # for curr_beat, next_beat in zip([0,*beats], beats):
+    #     loud_interval = [y for x,y in loudness if curr_beat < x < next_beat]
+    #     smoothed.append(np.mean(loud_interval))
+
+    return smoothed
+    # return (x,y)
+
+
+def preprocess_cosmo_annotation(annotation, beats):
+    # Optimizable
+    no_doubles = np.unique([(np.abs(np.array(beats) - boundary)).argmin() for boundary in annotation])
+    # Ignore boundaries within 3 beats of the first or last beat
+    no_extreme = [bound for bound in no_doubles if 3 <= bound < len(beats)-3]
+    return no_extreme
+
+
+def read_all_cosmo_data(source_path="data/Chopin Collection/"):
+    all_data = []
+    for beat_base in os.listdir(os.path.join(source_path, "Beats_pruned")):
+        if "excerpt_" not in beat_base:
+            continue
+        basefile = beat_base[:-10]
+        piece_id = basefile
+
+        beat_file = os.path.join(source_path, "Beats", f"{basefile}_beats.csv")
+        beats = read_cosmo_beats(beat_file)
+        tempo = [np.nan, *(60/np.diff(beats))]
+
+        loudness_file = os.path.join(source_path, "Loudness", f"{basefile}_loudness.csv")
+        loudness_raw = read_cosmo_loudness(loudness_file)
+        loudness = preprocess_cosmo_loudness(loudness_raw, beats)
+
+        annots_audio = []
+        for annot_audio_base in os.listdir(os.path.join(source_path, "Annotations_tmp", "Audio")):
+            if basefile+'-' in annot_audio_base:
+                annot_audio_file = os.path.join(
+                    source_path, "Annotations_tmp", "Audio", annot_audio_base)
+                annotator = annot_audio_base.replace('-', '.').split('.')[1]
+                annot_audio_raw = read_cosmo_annotation(annot_audio_file)
+                annots_audio.append(CosmonoteAnnotation(annotator,
+                                                        preprocess_cosmo_annotation(annot_audio_raw, beats)))
+
+        annots_loudness = []
+        for annot_loudness_base in os.listdir(os.path.join(source_path, "Annotations_tmp", "Loudness")):
+            if basefile+'-' in annot_loudness_base:
+                annot_loudness_file = os.path.join(
+                    source_path, "Annotations_tmp", "Loudness", annot_loudness_base)
+                annotator = annot_loudness_base.replace('-', '.').split('.')[1]
+                annot_loudness_raw = read_cosmo_annotation(annot_loudness_file)
+                annots_loudness.append(CosmonoteAnnotation(annotator,
+                                                           preprocess_cosmo_annotation(annot_loudness_raw, beats)))
+
+        annots_tempo = []
+        for annot_tempo_base in os.listdir(os.path.join(source_path, "Annotations_tmp", "Tempo")):
+            if basefile+'-' in annot_tempo_base:
+                annot_tempo_file = os.path.join(source_path, "Annotations_tmp", "Tempo", annot_tempo_base)
+                annotator = annot_tempo_base.replace('-', '.').split('.')[1]
+                annotation_tempo_raw = read_cosmo_annotation(annot_tempo_file)
+                annots_tempo.append(CosmonoteAnnotation(annotator,
+                                                        preprocess_cosmo_annotation(annotation_tempo_raw, beats)))
+
+        annot_set = CosmonoteAnnotationSet(annots_audio, annots_loudness, annots_tempo)
+        data = CosmonoteData(piece_id, beats, tempo, loudness, annot_set)
+        all_data.append(data)
+    return all_data
+
+
+def read_all_cosmonote_loudness(source_path="data/Chopin Collection/"):
+    pass
+
+
+def read_all_cosmo_annotation(source_path="data/Chopin Collection/"):
+    pass
 
 
 if __name__ == "__main__":
@@ -122,7 +205,7 @@ if __name__ == "__main__":
     # data = readMazurkaTimings(filename)
     # for d in data:
     #     print(d)
-    
+
     # filename = "M06-2_seg_man.csv"
     # data = readMazurkaArcSegmentation(filename)
     # for d in data:
@@ -130,5 +213,39 @@ if __name__ == "__main__":
     # data = readAllMazurkaDataAndSeg()
     # for maz, pid, tim, seg in data:
     #     print(maz, pid, tim, seg)
-    a = readAllMultidim(["beat_dyn"],[None],["Dyn"])
+    # a = readAllMultidim(["beat_dyn"], [None], ["Dyn"])
+    # f1 = '/Users/guichaoua 1/Nextcloud/Workspace/ArcV2/data/Chopin Collection/Annotations_tmp/Audio/excerpt_2.csv'
+    # print("Annots", read_cosmo_annotation(f1))
+    # f2 = '/Users/guichaoua 1/Nextcloud/Workspace/ArcV2/data/Chopin Collection/Beats/excerpt_2_beats.csv'
+    # print("Beats", read_cosmo_beats(f2))
+    # f3 = '/Users/guichaoua 1/Nextcloud/Workspace/ArcV2/data/Chopin Collection/Loudness/excerpt_2_loudness.csv'
+    # print("Loudness", read_cosmo_loudness(f3))
+
+    # beats = read_cosmo_beats(f2)
+    # raw_loud = read_cosmo_loudness(f3)
+    # loud = preprocess_cosmo_loudness(raw_loud, beats)
+
+    # import matplotlib.pyplot as plt
+    # plt.plot(*zip(*raw_loud))
+    # x, y = zip(*raw_loud)
+    # interpol = UnivariateSpline(x, y, s=10000)
+    # xsample = np.linspace(beats[0], beats[-1], 10000)
+    # ysample = interpol(xsample)
+    # plt.plot(xsample, ysample)
+    # plt.plot(beats, loud)
+
+    # raw_annot = read_cosmo_annotation(f1)
+    # annot = preprocess_cosmo_annotation(raw_annot, beats)
+
+    # bound_clocktime = [beats[idx] for idx in annot]
+    # plt.vlines(bound_clocktime, ymin=np.min(loud), ymax=np.max(loud), colors="r")
+    # plt.vlines(raw_annot, ymin=np.min(loud), ymax=np.max(loud), colors="b")
+    # plt.vlines(beats, ymin=np.min(loud), ymax=0.5*np.max(loud), colors="k")
+    # plt.show()
+    # print(loud)
+
+    data = read_all_cosmo_data()
+
+    print(data)
+
     print("Done")
