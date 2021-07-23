@@ -77,17 +77,17 @@ def arcML(data, returnEstimates=False):
         return list(reversed(polyfit))
 
 
-def normalizeX(dataSlice, linearSampling=True):
+def normalizeX(data_slice, linearSampling=True):
     """Normalize input variable (or generate it if needed) to range from 0 to 1."""
     # TODO: Automatically detect if linear sampling (beat-wise) or not (note-wise)
     if linearSampling:
-        if len(dataSlice) == 1:
-            return [(0, dataSlice[0])]
+        if len(data_slice) == 1:
+            return [(0, data_slice[0])]
         else:
-            return [(float(i)/(len(dataSlice)-1), dataPoint) for (i, dataPoint) in enumerate(dataSlice)]
+            return [(float(i)/(len(data_slice)-1), dataPoint) for (i, dataPoint) in enumerate(data_slice)]
     else:
-        maxX, _ = data[-1]
-        return [(float(x)/maxX, y) for x, y in data]
+        maxX, _ = data_slice[-1]
+        return [(float(x)/maxX, y) for x, y in data_slice]
 
 
 def knownSegmentationML(data, segmentation):
@@ -96,9 +96,9 @@ def knownSegmentationML(data, segmentation):
     models = []  # ML coefficient estimates
     lengths = []
     for (bound_curr, bound_next) in zip(segmentation, segmentation[1:]):
-        dataPairs = normalizeX(data[(sscurr+1):ssnext+1])
+        dataPairs = normalizeX(data[(bound_curr+1):bound_next+1])
         model, values = arcML(dataPairs, returnEstimates=True)
         models.append(model)
         y.extend(values)
-        lengths.append(ssnext-sscurr)
+        lengths.append(bound_next-bound_curr)
     return y, models, lengths
