@@ -1,9 +1,11 @@
 """Algorithms for MAP estimation and PM computation."""
-import singleArc as sa
-import math
-import lengthPriors
-import numpy as np
 import itertools as itt
+import math
+
+import numpy as np
+
+import lengthPriors
+import singleArc as sa
 
 
 def computeMAPs(data, arcPrior, lengthPrior):
@@ -37,14 +39,16 @@ def computeDataLikelihood(data, arcPrior, lengthPrior, linearSampling=True):
 
     # Fill up subdiagonals (rest is zeroes)
     for start, end in itt.combinations_with_replacement(range(N), r=2):
-        # (log-)Likelihood of the data assuming there is an arc
-        llikData = sa.arcLikelihood(arcPrior, sa.normalizeX(data[start:end+1], linearSampling=linearSampling))
         try:
             # (log-)Likelihood of the arc assuming its start
-            llikLength = np.log(lengthPrior.evalCond(start, end))
-        except lengthPriors.ImpossibleCondition:  # The arc's start is impossible
-            llikLength = np.nan
-        DLs[start, end] = llikData + llikLength
+            likLength = lengthPrior.evalCond(start, end)
+        except lengthPriors.ImpossibleCondition:  # Impossible start)
+            likLength = 0
+        if likLength == 0:
+            continue
+        # (log-)Likelihood of the data assuming there is an arc
+        llikData = sa.arcLikelihood(arcPrior, sa.normalizeX(data[start:end+1], linearSampling=linearSampling))
+        DLs[start, end] = llikData + np.log(likLength)
     return DLs
 
 
