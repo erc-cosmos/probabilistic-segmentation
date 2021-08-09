@@ -1,3 +1,10 @@
+"""
+Module for reading performance data or collections.
+
+Data can be either raw or annotated.
+Collections are either in the cosmonote format or MazurkaBL format.
+"""
+
 import csv
 import numpy as np
 import os
@@ -11,6 +18,7 @@ CosmonoteData = namedtuple("CosmonotePiece", ['piece_id', 'beats', 'tempo', 'lou
 
 
 def readMazurkaData(filename, preprocess=None):
+    """Read a MazurkaBL-formatted performance file with optional preprocessing."""
     with open(filename) as csvFile:
         csvReader = csv.reader(csvFile)
         # Read header
@@ -25,22 +33,26 @@ def readMazurkaData(filename, preprocess=None):
 
 
 def preprocessTimings(timings):
+    """Map timings to tempo."""
     tempo = map(lambda time: 60/np.diff(time), timings)
     return tempo
 
 
 def readMazurkaTimings(filename):
+    """Read a tempo in MazurkaBL format."""
     return readMazurkaData(filename, preprocess=preprocessTimings)
 
 
-def readAllMazurkaTimings(dirpath="beat_time"):
+def readAllMazurkaTimings(dirpath="data/beat_time"):
+    """Read all tempos in a directory in MazurkaBL format."""
     # Retrieve all mazurka files
     files = [os.path.join(dirpath, file) for file in os.listdir(dirpath) if os.path.splitext(file)[1] == ".csv"]
     # Read and return them
     return zip(files, map(readMazurkaTimings, files))
 
 
-def readAllMazurkaData(dirpath="beat_dyn", preprocess=None):
+def readAllMazurkaData(dirpath="data/beat_dyn", preprocess=None):
+    """Read all of a directory in MazurkaBL format, with optional preprocessing."""
     # Retrieve all mazurka files
     files = [os.path.join(dirpath, file) for file in os.listdir(dirpath) if os.path.splitext(file)[1] == ".csv"]
     # Read and return them
@@ -48,6 +60,7 @@ def readAllMazurkaData(dirpath="beat_dyn", preprocess=None):
 
 
 def readMazurkaArcSegmentation(filename):
+    """Read a segmentation in MazurkaBL format."""
     with open(filename) as csvFile:
         csvReader = csv.reader(csvFile)
         seg = [(line[0], [int(number) for number in line[1:] if number != '']) for line in csvReader]
@@ -55,6 +68,7 @@ def readMazurkaArcSegmentation(filename):
 
 
 def matchMazurkaSegmentation(filename, dirpath="deaf_structure_tempo", dataType='tempo'):
+    """Find the corresponding segmentation and read it."""
     if dataType == 'tempo':
         segbasename = os.path.basename(filename.replace("beat_time", "_man_seg"))
     elif dataType == 'loudness':
@@ -68,7 +82,7 @@ def matchMazurkaSegmentation(filename, dirpath="deaf_structure_tempo", dataType=
         return []
 
 
-def readAllMazurkaTimingsAndSeg(timingPath="beat_time", segPath="deaf_structure_tempo"):
+def readAllMazurkaTimingsAndSeg(timingPath="data/beat_time", segPath="data/deaf_structure_tempo"):
     allData = []
     allTimings = readAllMazurkaTimings(timingPath)
     for filename, timings in allTimings:
@@ -82,7 +96,7 @@ def readAllMazurkaTimingsAndSeg(timingPath="beat_time", segPath="deaf_structure_
     return allData
 
 
-def readAllMazurkaDataAndSeg(timingPath="beat_dyn", segPath="deaf_structure_loudness",
+def readAllMazurkaDataAndSeg(timingPath="data/beat_dyn", segPath="data/deaf_structure_loudness",
                              preprocess=None, dataType='loudness'):
     allPerf = []
     allData = readAllMazurkaData(timingPath, preprocess=preprocess)
