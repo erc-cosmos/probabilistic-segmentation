@@ -83,6 +83,7 @@ def matchMazurkaSegmentation(filename, dirpath="deaf_structure_tempo", dataType=
 
 
 def readAllMazurkaTimingsAndSeg(timingPath="data/beat_time", segPath="data/deaf_structure_tempo"):
+    """Read tempo segmentations and match them with tempo data."""
     allData = []
     allTimings = readAllMazurkaTimings(timingPath)
     for filename, timings in allTimings:
@@ -98,6 +99,7 @@ def readAllMazurkaTimingsAndSeg(timingPath="data/beat_time", segPath="data/deaf_
 
 def readAllMazurkaDataAndSeg(timingPath="data/beat_dyn", segPath="data/deaf_structure_loudness",
                              preprocess=None, dataType='loudness'):
+    """Read arbitrary segmentations and match them with arbitrary data."""
     allPerf = []
     allData = readAllMazurkaData(timingPath, preprocess=preprocess)
     for filename, timings in allData:
@@ -112,6 +114,7 @@ def readAllMazurkaDataAndSeg(timingPath="data/beat_dyn", segPath="data/deaf_stru
 
 
 def read_cosmo_beats(filepath):
+    """Read a beats file in Cosmonote format."""
     with open(filepath) as csv_file:
         csv_reader = csv.DictReader(csv_file)
         beats = [float(e['time']) for e in csv_reader]
@@ -119,6 +122,7 @@ def read_cosmo_beats(filepath):
 
 
 def read_cosmo_loudness(filepath):
+    """Read a loudness file in Cosmonote format."""
     with open(filepath) as csv_file:
         csv_reader = csv.DictReader(csv_file)
         loud = [CosmonoteLoudness(float(e['Time']), float(e['Loudness_smooth'])) for e in csv_reader]
@@ -126,6 +130,7 @@ def read_cosmo_loudness(filepath):
 
 
 def read_cosmo_annotation(filepath, strengths=(2, 3, 4)):
+    """Read an annotation file in Cosmonote format, filtering to specified boundary strengths."""
     with open(filepath) as csv_file:
         csv_reader = csv.DictReader(csv_file)
         annot = [float(e['Time']) for e in csv_reader if int(e['Strength']) in strengths]
@@ -133,18 +138,12 @@ def read_cosmo_annotation(filepath, strengths=(2, 3, 4)):
 
 
 def preprocess_cosmo_loudness(loudness, beats):
+    """Preprocess loudness by interpolating at beats positions."""
     x, y = zip(*loudness)
-    # smoothing = len(loudness)
-    interpol = UnivariateSpline(x, y, s=0)
+    interpol = UnivariateSpline(x, y, s=0)  # s=0 means no smoothing
     smoothed = interpol(beats)
 
-    # smoothed = []
-    # for curr_beat, next_beat in zip([0,*beats], beats):
-    #     loud_interval = [y for x,y in loudness if curr_beat < x < next_beat]
-    #     smoothed.append(np.mean(loud_interval))
-
     return smoothed
-    # return (x,y)
 
 
 def preprocess_cosmo_annotation(annotation, beats):
