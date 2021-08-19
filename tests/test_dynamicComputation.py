@@ -70,7 +70,7 @@ def test_dataLikelihood_is_upper_triangular(data):
     lengthPrior = lengthPriors.NormalLengthPrior(15, 5, list(range(len(data))), maxLength=20)
     DLmatrix = dc.computeDataLikelihood(data, arcPrior, lengthPrior)
 
-    np.testing.assert_equal(DLmatrix[np.tril_indices(len(data), k=-1)], np.nan)
+    np.testing.assert_equal(DLmatrix[np.tril_indices(len(data), k=-1)], np.NINF)
     assert np.nanmax(DLmatrix) <= 0  # Also assert logproba
 
 

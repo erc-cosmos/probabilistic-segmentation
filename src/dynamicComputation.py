@@ -35,7 +35,7 @@ def computeDataLikelihood(data, arcPrior, lengthPrior, linearSampling=True):
     """
     N = len(data)
     # Initialize log-Likelihood matrix
-    DLs = np.full((N, N), np.nan)
+    DLs = np.full((N, N), np.NINF)
 
     # Fill up subdiagonals (rest is zeroes)
     for start, end in itt.combinations_with_replacement(range(N), r=2):
