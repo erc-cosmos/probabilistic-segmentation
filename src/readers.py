@@ -147,6 +147,7 @@ def preprocess_cosmo_loudness(loudness, beats):
 
 
 def preprocess_cosmo_annotation(annotation, beats):
+    """Snap annotations to the closest beat and remove duplicate and implicit boundaries."""
     # Optimizable
     no_doubles = np.unique([(np.abs(np.array(beats) - boundary)).argmin() for boundary in annotation])
     # Ignore boundaries within 3 beats of the first or last beat
@@ -155,6 +156,7 @@ def preprocess_cosmo_annotation(annotation, beats):
 
 
 def read_all_cosmo_data(source_path="data/Chopin Collection/"):
+    """Collect data in Cosmonote format and assemble it in a single structure."""
     all_data = []
     for beat_base in os.listdir(os.path.join(source_path, "Beats_pruned")):
         if "excerpt_" not in beat_base:
@@ -203,14 +205,6 @@ def read_all_cosmo_data(source_path="data/Chopin Collection/"):
         data = CosmonoteData(piece_id, beats, tempo, loudness, annot_set)
         all_data.append(data)
     return all_data
-
-
-def read_all_cosmonote_loudness(source_path="data/Chopin Collection/"):
-    pass
-
-
-def read_all_cosmo_annotation(source_path="data/Chopin Collection/"):
-    pass
 
 
 if __name__ == "__main__":
