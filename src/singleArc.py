@@ -36,12 +36,22 @@ def makeNoiseCov(priors, inputVector):
     return block_diag(*[(prior['noiseStd']**2)*np.identity(len(inputVector)) for prior in priors])
 
 
+def is_static_prior(prior):
+    """Tell if a prior is static in time."""
+    return all(prior[param] == 0 for param in ['aMean', 'bMean', 'aStd', 'bStd'])
+
+
 @singleOrList(kw='priors')
-def arcLikelihood(priors, data):
+def arcLikelihood(priors, data, *, disable_opti=False):
     """Take a prior and a set of input/output values and return the log-likelihood of the data."""
     # 1 input, variable number of outputs
     (inputVector, outputVectors) = zip(*data)
     outputDim = len(priors)
+
+    if len(priors) == 1 and is_static_prior(priors[0]) and not disable_opti:
+        # Optimized version for static priors
+        return _arc_likelihood_static_prior(priors[0], np.array(outputVectors))
+
     # Capital Phi in the doc
     designMatrix = makeDesignMatrix(inputVector, outputDim)
     # Bold mu in the doc
@@ -59,6 +69,26 @@ def arcLikelihood(priors, data):
     targetValues = np.array(outputVectors).flatten('F')  # Flatten column first
 
     return multivariate_normal.logpdf(targetValues, mean=meanVectData, cov=covMatData)
+
+
+def _arc_likelihood_static_prior(prior, data):
+    """Take a static prior and a set of input/output values and return the log-likelihood of the data."""
+    d = len(data)
+    # Centered data w.r.t the mean mean
+    cdata = data - prior['cMean']
+    # The covariance matrix is xId + y
+    x = prior['noiseStd'] ** 2
+    y = prior['cStd'] ** 2
+    # Its inverse is vId - w
+    v = 1/x
+    w = y/x/(x+d*y)
+    # Its determinant has a closed formula
+    det = (x**(d-1)*(x+d*y))
+    # This is the exponent in the multivariate Gaussian density formula
+    exponent = v * (cdata @ cdata) - w * sum(cdata) ** 2
+
+    loglik = -(exponent + d * np.log(2 * np.pi) + np.log(det))/2
+    return loglik
 
 
 def arcMAP(prior, data):
