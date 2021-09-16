@@ -137,7 +137,7 @@ def computeBetas(arcPrior, lengthPrior, DLs):
     return betas
 
 
-def runAlphaBeta(data, arcPrior, lengthPrior, DLs=None, linearSampling=True):
+def runAlphaBeta(data, arcPrior, lengthPrior, DLs=None, linearSampling=True, return2D=False):
     """Run the alpha-beta algorithm to compute posterior marginals on arc boundaries."""
     if DLs is None:
         DLs = computeDataLikelihood(data, arcPrior, lengthPrior)
@@ -145,4 +145,11 @@ def runAlphaBeta(data, arcPrior, lengthPrior, DLs=None, linearSampling=True):
     alphas = computeAlphas(arcPrior, lengthPrior, DLs)
     betas = computeBetas(arcPrior, lengthPrior, DLs)
 
-    return np.exp([alpha + beta - alphas[-1] for (alpha, beta) in zip(alphas[1:], betas[1:])])
+    marginals = np.exp([alpha + beta - alphas[-1] for (alpha, beta) in zip(alphas[1:], betas[1:])])
+    if return2D:
+        start_end_marginals = np.zeros(np.shape(DLs))
+        for (i, j) in np.ndindex(np.shape(start_end_marginals)):
+            start_end_marginals[i, j] = np.exp(alphas[i]+betas[j+1]+DLs[i, j]-alphas[-1])
+        return marginals, start_end_marginals
+    else:
+        return marginals

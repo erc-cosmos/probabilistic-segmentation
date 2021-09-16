@@ -8,6 +8,7 @@ import lengthPriors
 import numpy as np
 import syntheticData as sd
 import pytest
+import numpy.testing as npt
 
 from defaultVars import arcPrior
 
@@ -127,3 +128,14 @@ def test_marginals_sum_over_minimum_segment_count_with_NormalPrior(data):
     lengthPrior = lengthPriors.NormalLengthPrior(15, 5, list(range(len(data))), maxLength=20)
     marginals = dc.runAlphaBeta(data, arcPrior, lengthPrior)
     assert sum(marginals) >= np.ceil(lengthPrior.dataLength/float(lengthPrior.maxLength+1))
+
+
+@hypothesis.settings(deadline=2000, max_examples=20)
+@hypothesis.given(features)
+def test_marginals_2D_sum_to_marginals(data):
+    """Check that the marginals sum over the minimum number of boundaries."""
+    hidden, data = data
+    lengthPrior = lengthPriors.NormalLengthPrior(15, 5, list(range(len(data))), maxLength=20)
+    marginals, bidim_marginals = dc.runAlphaBeta(data, arcPrior, lengthPrior, return2D=True)
+
+    npt.assert_allclose(sum(bidim_marginals), marginals)
