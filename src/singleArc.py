@@ -83,11 +83,12 @@ def _arc_likelihood_static_prior(prior, data):
     v = 1/x
     w = y/x/(x+d*y)
     # Its determinant has a closed formula
-    det = (x**(d-1)*(x+d*y))
+    # det = (x**(d-1)*(x+d*y))
+    logdet = (d-1) * np.log(x) + np.log(x+d*y)
     # This is the exponent in the multivariate Gaussian density formula
     exponent = v * (cdata @ cdata) - w * sum(cdata) ** 2
 
-    loglik = -(exponent + d * np.log(2 * np.pi) + np.log(det))/2
+    loglik = -(exponent + d * np.log(2 * np.pi) + logdet)/2
     return loglik
 
 
