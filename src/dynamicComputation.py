@@ -25,7 +25,7 @@ def computeMAPs(data, arcPrior, lengthPrior):
     return MAPs
 
 
-def computeDataLikelihood(data, arcPrior, lengthPrior, linearSampling=True):
+def computeDataLikelihood(data, arc_prior, length_prior, linear_sampling=True):
     """Construct log-likelihood transition matrix.
 
     This matrix lists the log-likelihood as an undivided arc conditionned on its start
@@ -33,23 +33,31 @@ def computeDataLikelihood(data, arcPrior, lengthPrior, linearSampling=True):
     A slice of data is indexed by start and end index (inclusive) and is valid
     if start<=end and if its length is less than the specified maximum.
     """
-    N = len(data)
-    # Initialize log-Likelihood matrix
-    DLs = np.full((N, N), np.NINF)
+    return (_compute_data_transition_matrix(data, arc_prior, linear_sampling)
+            + _compute_prior_transition_matrix(len(data), length_prior))
 
-    # Fill up subdiagonals (rest is zeroes)
-    for start, end in itt.combinations_with_replacement(range(N), r=2):
+
+def _compute_transition_matrix(data_length, func):
+    trans_matrix = np.full((data_length, data_length), np.NINF)
+    for start, end in itt.combinations_with_replacement(range(data_length), r=2):
+        trans_matrix[start, end] = func(start, end)
+    return trans_matrix
+
+
+def _compute_prior_transition_matrix(data_length, length_prior):
+    def wrapper(start, end):
         try:
-            # (log-)Likelihood of the arc assuming its start
-            likLength = lengthPrior.evalCond(start, end)
-        except lengthPriors.ImpossibleCondition:  # Impossible start)
-            likLength = 0
-        if likLength == 0:
-            continue
-        # (log-)Likelihood of the data assuming there is an arc
-        llikData = sa.arcLikelihood(arcPrior, sa.normalizeX(data[start:end+1], linearSampling=linearSampling))
-        DLs[start, end] = llikData + np.log(likLength)
-    return DLs
+            lik_length = length_prior.evalCond(start, end)
+        except lengthPriors.ImpossibleCondition:  # Impossible start
+            lik_length = 0
+        return np.log(lik_length)
+    return _compute_transition_matrix(data_length, wrapper)
+
+
+def _compute_data_transition_matrix(data, arc_prior, linear_sampling=True):
+    def wrapper(start, end):
+        return sa.arcLikelihood(arc_prior, sa.normalizeX(data[start:end+1], linearSampling=linear_sampling))
+    return _compute_transition_matrix(len(data), wrapper)
 
 
 def runViterbi(data, arcPrior, lengthPrior, MAPs=None):
