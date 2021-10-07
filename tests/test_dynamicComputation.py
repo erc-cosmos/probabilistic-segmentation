@@ -139,3 +139,27 @@ def test_marginals_2D_sum_to_marginals(data):
     marginals, bidim_marginals = dc.runAlphaBeta(data, arcPrior, lengthPrior, return2D=True)
 
     npt.assert_allclose(sum(bidim_marginals), marginals)
+
+
+@hypothesis.settings(deadline=2000, max_examples=20)
+@hypothesis.given(features)
+def test_reverse_commutes(data):
+    """Check that reversing then marginalising is the same as marginalising then reversing."""
+    hidden, data = data
+    lengthPrior = lengthPriors.NormalLengthPrior(15, 5, list(range(len(data))), maxLength=20)
+    arcPrior = {
+        # Gaussian priors on the parameters of ax^2 + bx + c
+        'aMean': 0,
+        'aStd': 0,
+        'bMean': 0,
+        'bStd': 0,
+        'cMean': 0,
+        'cStd': 5,
+        'noiseStd': 5
+    }
+    marginals = dc.runAlphaBeta(data, arcPrior, lengthPrior)
+
+    r_data = list(reversed(data))
+    r_marginals = dc.runAlphaBeta(r_data, arcPrior, lengthPrior)
+
+    npt.assert_allclose(list(reversed(r_marginals[:-1])), marginals[:-1])

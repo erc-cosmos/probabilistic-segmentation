@@ -48,7 +48,8 @@ class ContinuousLengthPrior:
         c0, cjpred, cj, cmax = self.cdf([0, xjpred, xj, xmax])
 
         # Scaling factor for the part of the distribution outside possible values
-        scaling = cmax - c0
+        # scaling = cmax - c0
+        scaling = 1
         if scaling == 0:
             raise ImpossibleCondition("Conditioning on impossible event")
         return (cj-cjpred)/scaling
@@ -154,6 +155,7 @@ class DiscreteLengthPrior:
 
     def scalingFactor(self, i):
         """Return the scaling factor for truncating the underlying the distribution."""
+        return 1
         result = sum(self.distrib.get(k, 0) for k in range(self.dataLength-i+1))
         if result == 0:
             raise ImpossibleCondition("Conditioning on impossible event")
