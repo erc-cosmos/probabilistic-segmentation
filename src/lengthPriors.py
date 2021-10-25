@@ -176,6 +176,22 @@ class EmpiricalLengthPrior(DiscreteLengthPrior):
         return super().__repr__()+f" based on {len(self._data)} samples"
 
 
+class GeometricLengthPrior(DiscreteLengthPrior):
+    """Prior using a truncated geometric distribution."""
+
+    def __init__(self, dataLength, ratio, max_length, min_length=1):
+        """Construct a GeometricLengthPrior."""
+        distribution = make_geo_dist(min_length, max_length, ratio)
+        super().__init__(dataLength, distribution, maxLength=max_length)
+
+
+def make_geo_dist(min_len, max_len, ratio):
+    """Return a truncated geometric distribution."""
+    unscaled = [ratio**i for i in range(max_len-min_len)]
+    factor = sum(unscaled)
+    return {i: p/factor for i, p in zip(range(min_len, max_len), unscaled)}
+
+
 def inferDiscreteDistribution(data, *, reserve=0, domain=None):
     """Infer a distribution from data."""
     reserveBoost = reserve/len(domain) if reserve != 0 else 0
