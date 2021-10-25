@@ -1,10 +1,11 @@
 """Functions for scoring a prediction against a reference."""
 
+from typing import Collection, Sequence, Set, Tuple
 import numpy as np
 import itertools as itt
 
 
-def scoreProbSegmentation(reference, estimation):
+def scoreProbSegmentation(reference: Collection[int], estimation: Collection[float]) -> float:
     """Return a probabilistic score between a marginal estimation and an empirical reference."""
     # Quadratic Bayesian scoring
     score = 0.0
@@ -17,7 +18,7 @@ def scoreProbSegmentation(reference, estimation):
     return score
 
 
-def countMatches(reference, estimation, tolerance):
+def countMatches(reference: Collection[int], estimation: Collection[int], tolerance: int) -> int:
     """Count matches between a reference and an estimation, excluding surjective mappings."""
     used_guess = set()
     used_ref = set()
@@ -30,19 +31,20 @@ def countMatches(reference, estimation, tolerance):
     return count
 
 
-def precision(reference, estimation, tolerance):
+def precision(reference: Collection[int], estimation: Collection[int], tolerance: int) -> float:
     """Compute the (tolerant) precision between estimation and reference."""
     if len(estimation) == 0:
         return 0
     return countMatches(reference, estimation, tolerance)/float(len(set(estimation)))
 
 
-def recall(reference, estimation, tolerance):
+def recall(reference: Collection[int], estimation: Collection[int], tolerance: int) -> float:
     """Compute the (tolerant) recall between estimation and reference."""
     return precision(estimation, reference, tolerance)
 
 
-def frpMeasures(reference, estimation, tolerance, weight=1):
+def frpMeasures(reference: Collection[int], estimation: Collection[int], tolerance: int, weight: float = 1) \
+        -> Tuple[float, float, float]:
     """Return all 3 classification measures (F, recall and precision)."""
     p = precision(reference, estimation, tolerance)
     r = recall(reference, estimation, tolerance)
@@ -50,16 +52,18 @@ def frpMeasures(reference, estimation, tolerance, weight=1):
     return f, r, p
 
 
-def fMeasure(reference, estimation, tolerance, weight=1):
+def fMeasure(reference: Collection[int], estimation: Collection[int], tolerance: int, weight: float = 1) -> float:
     """Compute the (tolerant) F-measure between estimation and reference."""
     return frpMeasures(reference, estimation, tolerance, weight)[0]
 
 
-def marginal2guess(marginals, tolerance, threshold):
+def marginal2guess(marginals: Sequence[float], tolerance: int, threshold: float)\
+        -> Tuple[Collection[int], np.ndarray]:
     """Construct an estimation from a marginal function."""
     convol = np.convolve(marginals, np.ones(2*tolerance+1), mode='same')
-    guesses = []
+    guesses: Set[int] = set()
     above = False
+    bestIndex: int = 0
     bestValue = threshold
     for it, value in enumerate(convol):
         if value >= bestValue:
@@ -67,7 +71,7 @@ def marginal2guess(marginals, tolerance, threshold):
             bestValue = value
             above = True
         elif above and value < threshold:  # We've reached the end of this run
-            guesses.append(bestIndex)
+            guesses.add(bestIndex)
             bestValue = threshold  # reset best
             above = False
     return guesses, convol
