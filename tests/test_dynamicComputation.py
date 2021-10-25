@@ -47,7 +47,7 @@ def test_beta_are_logprobability(data):
     hidden, data = data
     lengthPrior = lengthPriors.NormalLengthPrior(15, 5, list(range(len(data))), maxLength=20)
     DLs = dc.computeDataLikelihood(data, arcPrior, lengthPrior)
-    betas = dc.computeBetas(arcPrior, lengthPrior, DLs)
+    betas = dc.computeBetas(lengthPrior, DLs)
     assert 0 >= np.nanmax(betas)
 
 
@@ -59,7 +59,7 @@ def test_alpha_are_logprobability(data):
     hidden, data = data
     lengthPrior = lengthPriors.NormalLengthPrior(15, 5, list(range(len(data))), maxLength=20)
     DLs = dc.computeDataLikelihood(data, arcPrior, lengthPrior)
-    alphas = dc.computeAlphas(arcPrior, lengthPrior, DLs)
+    alphas = dc.computeAlphas(lengthPrior, DLs)
     assert all([0 >= alpha for alpha in alphas])
 
 
@@ -82,8 +82,8 @@ def test_alphaN_is_beta0(data):
     hidden, data = data
     lengthPrior = lengthPriors.NormalLengthPrior(15, 5, list(range(len(data))), maxLength=20)
     DLs = dc.computeDataLikelihood(data, arcPrior, lengthPrior)
-    alphas = dc.computeAlphas(arcPrior, lengthPrior, DLs)
-    betas = dc.computeBetas(arcPrior, lengthPrior, DLs)
+    alphas = dc.computeAlphas(lengthPrior, DLs)
+    betas = dc.computeBetas(lengthPrior, DLs)
     assert alphas[-1] == pytest.approx(betas[0])
     assert alphas[-1] <= 0
 
@@ -95,7 +95,7 @@ def test_alpha_length(data):
     hidden, data = data
     lengthPrior = lengthPriors.NormalLengthPrior(15, 5, list(range(len(data))), maxLength=20)
     DLs = dc.computeDataLikelihood(data, arcPrior, lengthPrior)
-    alphas = dc.computeAlphas(arcPrior, lengthPrior, DLs)
+    alphas = dc.computeAlphas(lengthPrior, DLs)
     assert len(alphas) == len(data) + 1
 
 
@@ -106,7 +106,7 @@ def test_beta_length(data):
     hidden, data = data
     lengthPrior = lengthPriors.NormalLengthPrior(15, 5, list(range(len(data))), maxLength=20)
     DLs = dc.computeDataLikelihood(data, arcPrior, lengthPrior)
-    betas = dc.computeBetas(arcPrior, lengthPrior, DLs)
+    betas = dc.computeBetas(lengthPrior, DLs)
     assert len(betas) == len(data) + 1
 
 

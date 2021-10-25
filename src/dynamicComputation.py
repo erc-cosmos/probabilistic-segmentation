@@ -97,7 +97,7 @@ def runViterbi(data, arcPrior, lengthPrior, MAPs=None):
     return path
 
 
-def computeAlphas(arcPrior, lengthPrior, DLs):
+def computeAlphas(lengthPrior, DLs):
     """Perform the Alpha phase of modified alpha-beta algorithm.
 
     Computes the joint likelihood of the data up to a point,
@@ -121,7 +121,7 @@ def computeAlphas(arcPrior, lengthPrior, DLs):
     return np.array(alphas)
 
 
-def computeBetas(arcPrior, lengthPrior, DLs):
+def computeBetas(lengthPrior, DLs):
     """Perform the beta phase of modified alpha-beta algorithm.
 
     Computes the conditional likelihood of the data from a point to the end,
@@ -148,10 +148,14 @@ def computeBetas(arcPrior, lengthPrior, DLs):
 def runAlphaBeta(data, arcPrior, lengthPrior, DLs=None, linearSampling=True, return2D=False):
     """Run the alpha-beta algorithm to compute posterior marginals on arc boundaries."""
     if DLs is None:
-        DLs = computeDataLikelihood(data, arcPrior, lengthPrior)
+        DLs = computeDataLikelihood(data, arcPrior, lengthPrior, linear_sampling=linearSampling)
 
-    alphas = computeAlphas(arcPrior, lengthPrior, DLs)
-    betas = computeBetas(arcPrior, lengthPrior, DLs)
+    return _compute_marginals(length_prior=lengthPrior, DLs=DLs, return2D=return2D)
+
+
+def _compute_marginals(length_prior, DLs, return2D=False):
+    alphas = computeAlphas(length_prior, DLs)
+    betas = computeBetas(length_prior, DLs)
 
     marginals = np.exp([alpha + beta - alphas[-1] for (alpha, beta) in zip(alphas[1:], betas[1:])])
     if return2D:
@@ -161,3 +165,15 @@ def runAlphaBeta(data, arcPrior, lengthPrior, DLs=None, linearSampling=True, ret
         return marginals, start_end_marginals
     else:
         return marginals
+
+
+def prior_marginals(data_length, length_prior, return2D=False):
+    """Compute the prior marginals with a length-based segment prior."""
+    DLs = _compute_prior_transition_matrix(data_length, length_prior)
+    return _compute_marginals(length_prior, DLs, return2D)
+
+
+def data_marginals(data, length_prior, return2D=False):
+    """Compute the posterior marginals with no prior."""
+    DLs = _compute_prior_transition_matrix(len(data), length_prior)
+    return _compute_marginals(length_prior, DLs, return2D)
