@@ -26,7 +26,7 @@ def readMazurkaData(filename, preprocess=None):
         # zip to read colum by column
         data = zip(*(map(float, row[3:]) for row in csvReader))
         if preprocess is not None:
-            data = preprocess(data)
+            data = zip(data, preprocess(data))
         else:
             data = map(np.array, data)
         return list(zip(interpretIds, data))

@@ -37,8 +37,8 @@ def test_mazurka_tempo_is_plausible():
     """Check that tempo values are plausible."""
     data = readers.readMazurkaTimings('data/beat_time/M06-1beat_time.csv')
 
-    for _, series in data:
-        for t in series:
+    for _, (times, tempos) in data:
+        for t in tempos:
             assert 10 < t < 600
 
 
