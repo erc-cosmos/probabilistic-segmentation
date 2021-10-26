@@ -10,13 +10,13 @@ import pytest
 def test_likelihood_1D():
     prior = defaultVars.arcPrior
     data = defaultVars.data1D
-    assert sa.arcLikelihood(prior, data) == -37.52804497877863
+    assert sa.arcLikelihood(prior, data) == pytest.approx(-37.52804497877863)
 
 
 def test_likelihood_2D():
     priors = [defaultVars.arcPrior, defaultVars.arcPrior2]
     data = defaultVars.dataMultidim
-    assert sa.arcLikelihood(priors=priors, data=data) == -161.83384451749782
+    assert sa.arcLikelihood(priors=priors, data=data) == pytest.approx(-161.83384451749782)
 
 
 def test_meanVect_1D():
