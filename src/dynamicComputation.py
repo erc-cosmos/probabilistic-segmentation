@@ -1,6 +1,7 @@
 """Algorithms for MAP estimation and PM computation."""
 import itertools as itt
 import math
+from typing import Any, List, Optional, Tuple
 
 import numpy as np
 
@@ -68,7 +69,7 @@ def runViterbi(data, arcPrior, lengthPrior, MAPs=None):
         MAPs = computeMAPs(data, arcPrior, maxLength)
 
     # Forward pass: compute optimal predecessors
-    predecessors = [(None, 0, None)]
+    predecessors: List[Tuple[Optional[int], float, Any]] = [(None, 0, None)]
     for arcEnd in range(1, len(data)):
         # Prior rescaling so it is a distribution (sums to 1)
         lengthNormalization = lengthPrior['cmf'][arcEnd] if arcEnd < maxLength else lengthPrior['cmf'][-1]
@@ -153,18 +154,46 @@ def runAlphaBeta(data, arcPrior, lengthPrior, DLs=None, linearSampling=True, ret
     return _compute_marginals(length_prior=lengthPrior, DLs=DLs, return2D=return2D)
 
 
+def _marginal_boundaries(alphas: np.ndarray, betas: np.ndarray) -> np.ndarray:
+    """Compute marginals for boundaries from alpha and beta probabilities.
+
+    Args:
+        alphas (1D Array): joint probability of the data up to index and a segment ending at index
+        betas (1D Array): probability of the data past the index conditionned on a segment ending at index
+
+    Returns:
+        1D Array: probability of a segment ending at index
+    """
+    return np.exp([alpha + beta - alphas[-1] for (alpha, beta) in zip(alphas[1:], betas[1:])])
+
+
 def _compute_marginals(length_prior, DLs, return2D=False):
     alphas = computeAlphas(length_prior, DLs)
     betas = computeBetas(length_prior, DLs)
 
-    marginals = np.exp([alpha + beta - alphas[-1] for (alpha, beta) in zip(alphas[1:], betas[1:])])
+    marginals = _marginal_boundaries(alphas, betas)
     if return2D:
-        start_end_marginals = np.zeros(np.shape(DLs))
-        for (i, j) in np.ndindex(np.shape(start_end_marginals)):
-            start_end_marginals[i, j] = np.exp(alphas[i]+betas[j+1]+DLs[i, j]-alphas[-1])
+        start_end_marginals = _marginal_segments(DLs, alphas, betas)
         return marginals, start_end_marginals
     else:
         return marginals
+
+
+def _marginal_segments(DLs: np.ndarray, alphas: np.ndarray, betas: np.ndarray) -> np.ndarray:
+    """Compute marginals for segments based on alpha/beta probabilities and arc likelihoods.
+
+    Args:
+        DLs (2D np.ndarray): joint likelihood of the data between indices and the indices bounding a segment
+        alphas (1D np.ndarray): joint probability of the data up to index and a segment ending at index
+        betas (1D np.ndarray): probability of the data past the index conditionned on a segment ending at index
+
+    Returns:
+        2D np.ndarray: probability of a segment starting and ending at indices
+    """
+    start_end_marginals = np.zeros(np.shape(DLs))
+    for (i, j) in np.ndindex(np.shape(start_end_marginals)):
+        start_end_marginals[i, j] = np.exp(alphas[i]+betas[j+1]+DLs[i, j]-alphas[-1])
+    return start_end_marginals
 
 
 def prior_marginals(data_length, length_prior, return2D=False):
