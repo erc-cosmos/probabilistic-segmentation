@@ -4,7 +4,7 @@ import numpy.polynomial.polynomial
 from scipy.linalg import block_diag
 from scipy.stats import multivariate_normal
 
-from mydecorators import singleOrList
+from my_decorators import singleOrList
 
 
 @singleOrList(kw='priors')

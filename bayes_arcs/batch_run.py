@@ -1,10 +1,10 @@
 """Batch run on a whole dataset."""
 import os.path
 
-import dynamicComputation as dc
-from lengthPriors import NormalLengthPrior
+import dynamic_computation as dc
+from length_priors import NormalLengthPrior
 from readers import readAllMazurkaData
-from defaultPriors import arcPriorLoud, lengthPriorParamsLoud
+from default_priors import arcPriorLoud, lengthPriorParamsLoud
 import writers
 
 

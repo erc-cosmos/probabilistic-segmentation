@@ -5,8 +5,8 @@ from typing import Any, List, Optional, Tuple
 
 import numpy as np
 
-import lengthPriors
-import singleArc as sa
+import length_priors
+import single_arc as sa
 
 
 def computeMAPs(data, arcPrior, lengthPrior):
@@ -49,7 +49,7 @@ def _compute_prior_transition_matrix(data_length, length_prior):
     def wrapper(start, end):
         try:
             lik_length = length_prior.evalCond(start, end)
-        except lengthPriors.ImpossibleCondition:  # Impossible start
+        except length_priors.ImpossibleCondition:  # Impossible start
             lik_length = 0
         return np.log(lik_length)
     return _compute_transition_matrix(data_length, wrapper)

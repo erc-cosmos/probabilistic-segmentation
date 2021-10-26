@@ -2,18 +2,19 @@
 import pytest
 import hypothesis
 import hypothesis.strategies as st
-import lengthPriors
+import length_priors
+
 
 means = st.floats(min_value=0, allow_infinity=False)
 stddevs = st.floats(min_value=1, exclude_min=True, allow_infinity=False)
 xinputs = st.lists(st.floats(min_value=0), min_size=2, unique=True).map(sorted)
-normalPriors = st.builds(lengthPriors.NormalLengthPrior,
+normalPriors = st.builds(length_priors.NormalLengthPrior,
                          means, stddevs, xinputs,
                          st.integers(min_value=2, max_value=50))
 segmentLengthSets = st.lists(st.integers(
     min_value=2, max_value=100), min_size=2)
 pieceLengths = st.integers(min_value=2, max_value=10000)
-empiricalPriors = st.builds(lengthPriors.EmpiricalLengthPrior,
+empiricalPriors = st.builds(length_priors.EmpiricalLengthPrior,
                             dataLength=pieceLengths,
                             data=segmentLengthSets)
 indices = st.integers(min_value=0)
@@ -61,7 +62,7 @@ def test_proba_Normal(distribution, i, j):
     try:
         result = distribution.evalCond(i, j)
         assert 0 <= result <= 1
-    except lengthPriors.ImpossibleCondition:
+    except length_priors.ImpossibleCondition:
         pass
 
 
@@ -94,13 +95,13 @@ def test_proba_Normal(distribution, i, j):
 @hypothesis.given(segmentLengthSets, pieceLengths)
 def test_build_Empirical(lengths, dataLength):
     """Check that EmpiricalPriors get properly constructed from data."""
-    assert lengthPriors.EmpiricalLengthPrior(
+    assert length_priors.EmpiricalLengthPrior(
         dataLength=dataLength, data=lengths)
 
 
 def test_empirical_distribution_by_value():
     """Check a distribution after construction."""
-    dist = lengthPriors.inferDiscreteDistribution([5, 5, 3, 8, 4])
+    dist = length_priors.inferDiscreteDistribution([5, 5, 3, 8, 4])
     assert dist[5] == 0.4
     assert dist[4] == 0.2
 
@@ -108,7 +109,7 @@ def test_empirical_distribution_by_value():
 @hypothesis.given(segmentLengthSets)
 def test_empirical_distribution_is_distribution(segmentLengthSet):
     """Check that the inferred distribution is a distribution."""
-    dist = lengthPriors.inferDiscreteDistribution(segmentLengthSet)
+    dist = length_priors.inferDiscreteDistribution(segmentLengthSet)
     assert all(0 <= p <= 1 for p in dist.values())
     assert sum(dist.values()) == pytest.approx(1)
 
