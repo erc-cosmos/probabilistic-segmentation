@@ -7,3 +7,5 @@ output/
 .vscode
 .DS_Store
 .hypothesis
+Figures arcs/
+__pycache__
