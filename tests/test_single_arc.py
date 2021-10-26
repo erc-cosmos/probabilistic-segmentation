@@ -3,67 +3,76 @@ import hypothesis
 import hypothesis.strategies as st
 import numpy as np
 import pytest
+import default_vars
 import single_arc as sa
 
-import default_vars
+
+def test_likelihood_1d():
+    """Test likelihood of known 1D data."""
+    prior = default_vars.arc_prior
+    data = default_vars.data_1d
+    assert sa.arc_likelihood(prior, data) == pytest.approx(-37.52804497877863)
 
 
-def test_likelihood_1D():
-    prior = default_vars.arcPrior
-    data = default_vars.data1D
-    assert sa.arcLikelihood(prior, data) == pytest.approx(-37.52804497877863)
+def test_likelihood_2d():
+    """Test likelihood of known 2D data."""
+    priors = [default_vars.arc_prior, default_vars.arc_prior2]
+    data = default_vars.data_multidim
+    assert sa.arc_likelihood(priors=priors, data=data) == pytest.approx(-161.83384451749782)
 
 
-def test_likelihood_2D():
-    priors = [default_vars.arcPrior, default_vars.arcPrior2]
-    data = default_vars.dataMultidim
-    assert sa.arcLikelihood(priors=priors, data=data) == pytest.approx(-161.83384451749782)
+def test_mean_vect_1d():
+    """Test that mean priors are properly vectorized in 1D."""
+    prior = default_vars.arc_prior
+    assert list(sa.make_mean_vect(prior)) == [10, 20, 30]
 
 
-def test_meanVect_1D():
-    prior = default_vars.arcPrior
-    assert list(sa.makeMeanVect(prior)) == [10, 20, 30]
+def test_mean_vect_2d():
+    """Test that mean priors are properly vectorized in 2D."""
+    priors = [default_vars.arc_prior, default_vars.arc_prior2]
+    assert list(sa.make_mean_vect(priors)) == [10, 20, 30, -10, -20, -30]
 
 
-def test_meanVect_2D():
-    priors = [default_vars.arcPrior, default_vars.arcPrior2]
-    assert list(sa.makeMeanVect(priors)) == [10, 20, 30, -10, -20, -30]
+def test_var_vect_1d():
+    """Test that variance priors are properly vectorized in 1D."""
+    prior = default_vars.arc_prior
+    assert list(sa.make_var_vect(prior)) == [1, 4, 9]
 
 
-def test_varVect_1D():
-    prior = default_vars.arcPrior
-    assert list(sa.makeVarVect(prior)) == [1, 4, 9]
+def test_var_vect_2d():
+    """Test that variance priors are properly vectorized in 2D."""
+    priors = [default_vars.arc_prior, default_vars.arc_prior2]
+    assert list(sa.make_var_vect(priors)) == [1, 4, 9, 1, 4, 9]
 
 
-def test_varVect_2D():
-    priors = [default_vars.arcPrior, default_vars.arcPrior2]
-    assert list(sa.makeVarVect(priors)) == [1, 4, 9, 1, 4, 9]
+def test_design_format_1d():
+    """Check the shape of the design matrix in 1D."""
+    x, _ = zip(*default_vars.data_1d)
+    assert sa.make_design_matrix(x).shape == (5, 3)
 
 
-def test_design_format_1D():
-    x, _ = zip(*default_vars.data1D)
-    assert sa.makeDesignMatrix(x).shape == (5, 3)
-
-
-def test_design_format_2D():
-    x, _ = zip(*default_vars.dataMultidim)
-    output = sa.makeDesignMatrix(x, outputDims=2)
+def test_design_format_2d():
+    """Check the shape of the design matrix in 2D."""
+    x, _ = zip(*default_vars.data_multidim)
+    output = sa.make_design_matrix(x, output_dims=2)
     assert output.shape == (10, 6)  # General dimensions
     assert not output[:5, 3:].any()  # Is block diagonal
     assert not output[5:, :3].any()
 
 
-def test_noiseCov_1D_is_diagonal():
-    prior = default_vars.arcPrior
-    x, _ = zip(*default_vars.data1D)
-    output = sa.makeNoiseCov(prior, x)
+def test_noise_cov_1d_is_diagonal():
+    """Check that the covariance matrix for 1D is diagonal."""
+    prior = default_vars.arc_prior
+    x, _ = zip(*default_vars.data_1d)
+    output = sa.make_noise_cov(prior, x)
     assert not np.any(output-np.diag(np.diagonal(output)))
 
 
-def test_noiseCov_2D_is_diagonal():
-    priors = [default_vars.arcPrior, default_vars.arcPrior2]
-    x, _ = zip(*default_vars.dataMultidim)
-    output = sa.makeNoiseCov(priors, x)
+def test_noise_cov_2d_is_diagonal():
+    """Check that the covariance matrix for 2D is diagonal."""
+    priors = [default_vars.arc_prior, default_vars.arc_prior2]
+    x, _ = zip(*default_vars.data_multidim)
+    output = sa.make_noise_cov(priors, x)
     assert not np.any(output-np.diag(np.diagonal(output)))
 
 
@@ -83,9 +92,9 @@ def test_static_optimisation_is_equivalent(data, mean, std, noise):
         'cStd': std,
         'noiseStd': noise
     }
-    loglik_opt = sa.arcLikelihood(prior, sa.normalizeX(data))
+    loglik_opt = sa.arc_likelihood(prior, sa.normalize_x(data))
     try:
-        loglik_no_opt = sa.arcLikelihood(prior, sa.normalizeX(data), disable_opti=True)
+        loglik_no_opt = sa.arc_likelihood(prior, sa.normalize_x(data), disable_opti=True)
     except np.linalg.LinAlgError:
         hypothesis.reject()  # Reject if the variances are too extreme and result in a singular covariance matrix
     else:

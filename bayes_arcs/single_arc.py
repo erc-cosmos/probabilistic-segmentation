@@ -4,11 +4,11 @@ import numpy.polynomial.polynomial
 from scipy.linalg import block_diag
 from scipy.stats import multivariate_normal
 
-from my_decorators import singleOrList
+from my_decorators import single_or_list
 
 
-@singleOrList(kw='priors')
-def makeMeanVect(priors):
+@single_or_list(kw='priors')
+def make_mean_vect(priors):
     """Return an array of the prior means of the model parameters."""
     result = []
     for prior in priors:
@@ -16,8 +16,8 @@ def makeMeanVect(priors):
     return np.array(result)
 
 
-@singleOrList(kw='priors')
-def makeVarVect(priors):
+@single_or_list(kw='priors')
+def make_var_vect(priors):
     """Return an array of the prior variance of the model parameters."""
     result = []
     for prior in priors:
@@ -25,15 +25,15 @@ def makeVarVect(priors):
     return np.square(np.array(result))
 
 
-def makeDesignMatrix(xarray, outputDims=1):
+def make_design_matrix(xarray, output_dims=1):
     """Build the design matrix for the problem at hand."""
-    return block_diag(*[np.array([[x**2, x, 1] for x in xarray]) for i in range(outputDims)])
+    return block_diag(*[np.array([[x**2, x, 1] for x in xarray]) for i in range(output_dims)])
 
 
-@singleOrList(kw='priors')
-def makeNoiseCov(priors, inputVector):
+@single_or_list(kw='priors')
+def make_noise_cov(priors, input_vector):
     """Build the gaussian noise's covariance matrix."""
-    return block_diag(*[(prior['noiseStd']**2)*np.identity(len(inputVector)) for prior in priors])
+    return block_diag(*[(prior['noiseStd']**2)*np.identity(len(input_vector)) for prior in priors])
 
 
 def is_static_prior(prior):
@@ -41,34 +41,34 @@ def is_static_prior(prior):
     return all(prior[param] == 0 for param in ['aMean', 'bMean', 'aStd', 'bStd'])
 
 
-@singleOrList(kw='priors')
-def arcLikelihood(priors, data, *, disable_opti=False):
+@single_or_list(kw='priors')
+def arc_likelihood(priors, data, *, disable_opti=False):
     """Take a prior and a set of input/output values and return the log-likelihood of the data."""
     # 1 input, variable number of outputs
-    (inputVector, outputVectors) = zip(*data)
-    outputDim = len(priors)
+    (input_vector, output_vectors) = zip(*data)
+    output_dim = len(priors)
 
     if len(priors) == 1 and is_static_prior(priors[0]) and not disable_opti:
         # Optimized version for static priors
-        return _arc_likelihood_static_prior(priors[0], np.array(outputVectors))
+        return _arc_likelihood_static_prior(priors[0], np.array(output_vectors))
 
     # Capital Phi in the doc
-    designMatrix = makeDesignMatrix(inputVector, outputDim)
+    design_matrix = make_design_matrix(input_vector, output_dim)
     # Bold mu in the doc
-    meanVectPrior = makeMeanVect(priors)
+    mean_vect_prior = make_mean_vect(priors)
     # Means vector for the data
-    meanVectData = np.matmul(designMatrix, meanVectPrior)
+    mean_vect_data = np.matmul(design_matrix, mean_vect_prior)
     # Bold sigma^2 in the doc
-    varVect = makeVarVect(priors)
+    var_vect = make_var_vect(priors)
     # Noise component of covariance matrix
-    noiseCov = makeNoiseCov(priors, inputVector)
+    noise_cov = make_noise_cov(priors, input_vector)
     # Covariance matrix for the data
-    covMatData = noiseCov + \
-        (designMatrix @ np.diag(varVect) @ np.transpose(designMatrix))
+    cov_mat_data = noise_cov + \
+        (design_matrix @ np.diag(var_vect) @ np.transpose(design_matrix))
     # Bold t in the doc
-    targetValues = np.array(outputVectors).flatten('F')  # Flatten column first
+    target_values = np.array(output_vectors).flatten('F')  # Flatten column first
 
-    return multivariate_normal.logpdf(targetValues, mean=meanVectData, cov=covMatData)
+    return multivariate_normal.logpdf(target_values, mean=mean_vect_data, cov=cov_mat_data)
 
 
 def _arc_likelihood_static_prior(prior, data):
@@ -92,43 +92,43 @@ def _arc_likelihood_static_prior(prior, data):
     return loglik
 
 
-def arcMAP(prior, data):
+def arc_max_a_posteriori(prior, data):
     """Take a prior and a set of input/output values and return the most likely arc with its loglikelihood."""
     # NYI
     return {"LL": None, "Arc": None}
 
 
-def arcML(data, returnEstimates=False):
+def arc_max_likelihood(data, return_estimates=False):
     """Return the maximum likelihood arc for a set of input/output values."""
-    (inputVector, outputVector) = zip(*data)
-    polyfit = np.polynomial.polynomial.polyfit(inputVector, outputVector, 2)
-    if returnEstimates:
-        return list(reversed(polyfit)), np.polynomial.polynomial.polyval(inputVector, polyfit)
+    (input_vector, output_vector) = zip(*data)
+    polyfit = np.polynomial.polynomial.polyfit(input_vector, output_vector, 2)
+    if return_estimates:
+        return list(reversed(polyfit)), np.polynomial.polynomial.polyval(input_vector, polyfit)
     else:
         return list(reversed(polyfit))
 
 
-def normalizeX(data_slice, linearSampling=True):
+def normalize_x(data_slice, linear_sampling=True):
     """Normalize input variable (or generate it if needed) to range from 0 to 1."""
     # TODO: Automatically detect if linear sampling (beat-wise) or not (note-wise)
-    if linearSampling:
+    if linear_sampling:
         if len(data_slice) == 1:
             return [(0, data_slice[0])]
         else:
-            return [(float(i)/(len(data_slice)-1), dataPoint) for (i, dataPoint) in enumerate(data_slice)]
+            return [(float(i)/(len(data_slice)-1), data_point) for (i, data_point) in enumerate(data_slice)]
     else:
-        maxX, _ = data_slice[-1]
-        return [(float(x)/maxX, y) for x, y in data_slice]
+        max_x, _ = data_slice[-1]
+        return [(float(x)/max_x, y) for x, y in data_slice]
 
 
-def knownSegmentationML(data, segmentation):
+def known_segmentation_max_likelihood(data, segmentation):
     """Perform a ML estimation with known boundaries."""
     y = []  # ML estimation of the denoised data
     models = []  # ML coefficient estimates
     lengths = []
     for (bound_curr, bound_next) in zip(segmentation, segmentation[1:]):
-        dataPairs = normalizeX(data[(bound_curr+1):bound_next+1])
-        model, values = arcML(dataPairs, returnEstimates=True)
+        data_pairs = normalize_x(data[(bound_curr+1):bound_next+1])
+        model, values = arc_max_likelihood(data_pairs, return_estimates=True)
         models.append(model)
         y.extend(values)
         lengths.append(bound_next-bound_curr)

@@ -1,51 +1,51 @@
 """Tests for scoring.py."""
 import hypothesis
 import hypothesis.strategies as st
-import scoring
 import pytest
+import scoring
 
 segmentations = st.lists(st.floats(min_value=0, allow_infinity=False))
 
 
-def test_countMatches_tolerance():
+def test_count_matches_tolerance():
     """Check countMatches with a known example."""
     ref = [0, 10, 20]
     guess = [5, 16]
-    assert scoring.countMatches(ref, guess, 3) == 0
-    assert scoring.countMatches(ref, guess, 4) == 1
-    assert scoring.countMatches(ref, guess, 6) == 2
+    assert scoring.count_matches(ref, guess, 3) == 0
+    assert scoring.count_matches(ref, guess, 4) == 1
+    assert scoring.count_matches(ref, guess, 6) == 2
 
 
 @hypothesis.given(segmentations, st.floats(min_value=0))
-def test_countMatches_reflexively(ref, tolerance):
+def test_count_matches_reflexively(ref, tolerance):
     """Check that everything matches when the reference and estimate are the same."""
-    assert scoring.countMatches(ref, ref, tolerance) == len(set(ref))
+    assert scoring.count_matches(ref, ref, tolerance) == len(set(ref))
 
 
 @hypothesis.given(segmentations, segmentations)
-def test_countMatches_strict_not_max(ref, guess):
+def test_count_matches_strict_not_max(ref, guess):
     """Check that different sets yield do not yield maximal score when tolerance is 0."""
     hypothesis.assume(set(ref) != set(guess))
-    assert scoring.countMatches(ref, guess, 0) < max(len(set(ref)), len(set(guess)))
+    assert scoring.count_matches(ref, guess, 0) < max(len(set(ref)), len(set(guess)))
 
 
 @hypothesis.given(segmentations, segmentations)
-def test_countMatches_no_more_than_minlength(ref, guess):
+def test_count_matches_no_more_than_minlength(ref, guess):
     """Check that the number of matches is lower than the number of elements in either argument."""
-    assert scoring.countMatches(ref, guess, 0) <= min(len(ref), len(guess))
+    assert scoring.count_matches(ref, guess, 0) <= min(len(ref), len(guess))
 
 
 @hypothesis.given(segmentations, segmentations, st.floats(min_value=0))
-def test_countMatches_symmetry(ref, guess, tolerance):
+def test_count_matches_symmetry(ref, guess, tolerance):
     """Check that countMatches is symmetric."""
-    assert scoring.countMatches(ref, guess, tolerance) == scoring.countMatches(guess, ref, tolerance)
+    assert scoring.count_matches(ref, guess, tolerance) == scoring.count_matches(guess, ref, tolerance)
 
 
 @hypothesis.given(segmentations, segmentations, st.floats(min_value=0), st.floats(min_value=0))
-def test_countMatches_weak_monotonic(ref, guess, tolerance1, tolerance2):
+def test_count_matches_weak_monotonic(ref, guess, tolerance1, tolerance2):
     """Check that increasing tolerance doesn't decrease matches."""
-    score1 = scoring.countMatches(ref, guess, tolerance1)
-    score2 = scoring.countMatches(ref, guess, tolerance2)
+    score1 = scoring.count_matches(ref, guess, tolerance1)
+    score2 = scoring.count_matches(ref, guess, tolerance2)
     assert (score1 <= score2) or (tolerance1 > tolerance2)
 
 
@@ -102,14 +102,14 @@ def test_fmeasure_1():
     """Check F1 with a known example."""
     ref = [0, 10, 20]
     guess = [5, 19]
-    assert scoring.fMeasure(ref, guess, 3) == 0.4
+    assert scoring.f_measure(ref, guess, 3) == 0.4
 
 
 @hypothesis.given(segmentations, segmentations, st.floats(min_value=0), st.floats(min_value=1e-5, max_value=1e5))
 def test_fmeasure_range(ref, guess, tol, weight):
     """Check the range of F-measure."""
     hypothesis.assume(ref != [] or guess != [])
-    result = scoring.fMeasure(ref, guess, tol, weight)
+    result = scoring.f_measure(ref, guess, tol, weight)
     assert 0 <= result <= 1
 
 
@@ -117,4 +117,4 @@ def test_fmeasure_range(ref, guess, tol, weight):
 def test_perfect_score(ref, tol):
     """Check that an exact guess gets a perfect score."""
     hypothesis.assume(ref != [])
-    assert scoring.frpMeasures(ref, ref, tol) == (1, 1, 1)
+    assert scoring.frp_measures(ref, ref, tol) == (1, 1, 1)

@@ -1,19 +1,20 @@
 """Batch run on a whole dataset."""
 import os.path
 
+from default_priors import arc_prior_loud
+from default_priors import length_prior_params_loud
 import dynamic_computation as dc
 from length_priors import NormalLengthPrior
-from readers import readAllMazurkaData
-from default_priors import arcPriorLoud, lengthPriorParamsLoud
+from readers import read_all_mazurka_data
 import writers
 
 
-def trim_PID(pid):
+def trim_pid(pid):
     """Trim a performer ID to the relevant part."""
     return pid.split('-')[0]
 
 
-def batchRun(full_data, arc_prior, length_prior_params, output_dir, piece_name_finder):
+def batch_run(full_data, arc_prior, length_prior_params, output_dir, piece_name_finder):
     """Run a Bayesian arc estimation on many series.
 
     full_data -- collection of collection of performances to analyze
@@ -24,16 +25,16 @@ def batchRun(full_data, arc_prior, length_prior_params, output_dir, piece_name_f
     """
     for (piece, performances) in full_data:
         for (pid, data) in performances:
-            pid = trim_PID(pid)
+            pid = trim_pid(pid)
             piece_formatted = piece_name_finder(piece)
             print(piece_formatted, pid)
 
-            lengthPrior = NormalLengthPrior(length_prior_params['mean'], length_prior_params['stddev'],
-                                            range(len(data)), length_prior_params['maxLength'])
+            length_prior = NormalLengthPrior(length_prior_params['mean'], length_prior_params['stddev'],
+                                             range(len(data)), length_prior_params['maxLength'])
 
-            posteriorMarginals = dc.runAlphaBeta(data, arc_prior, lengthPrior)
+            posterior_marginals = dc.run_alpha_beta(data, arc_prior, length_prior)
 
-            writers.writeMarginals(os.path.join(output_dir, f"{piece_formatted}_{pid}_pm.csv"), posteriorMarginals)
+            writers.write_marginals(os.path.join(output_dir, f"{piece_formatted}_{pid}_pm.csv"), posterior_marginals)
 
 
 if __name__ == "__main__":
@@ -44,9 +45,9 @@ if __name__ == "__main__":
 
     # batchRun(fullData,arcPrior,lengthPriorParams,outputDir,pieceNameFinder=lambda f:f[16:20])
 
-    fullData = list(readAllMazurkaData("data/beat_dyn"))
-    arcPrior = arcPriorLoud
-    lengthPriorParams = lengthPriorParamsLoud
-    outputDir = os.path.join('output', 'loudnessBased')
+    full_data = list(read_all_mazurka_data("data/beat_dyn"))
+    arc_prior = arc_prior_loud
+    length_prior_params = length_prior_params_loud
+    output_dir = os.path.join('output', 'loudnessBased')
 
-    batchRun(fullData, arcPrior, lengthPriorParams, outputDir, piece_name_finder=lambda f: f[15:19])
+    batch_run(full_data, arc_prior, length_prior_params, output_dir, piece_name_finder=lambda f: f[15:19])

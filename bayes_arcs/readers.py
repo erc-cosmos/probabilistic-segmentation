@@ -5,10 +5,11 @@ Data can be either raw or annotated.
 Collections are either in the cosmonote format or MazurkaBL format.
 """
 
-import csv
-import numpy as np
-import os
 from collections import namedtuple
+import csv
+import os
+
+import numpy as np
 from scipy.interpolate import UnivariateSpline
 
 CosmonoteLoudness = namedtuple("Loudness", ['time', 'loudness'])
@@ -17,100 +18,100 @@ CosmonoteAnnotationSet = namedtuple("AnnotationSet", ['audio', 'loudness', 'temp
 CosmonoteData = namedtuple("CosmonotePiece", ['piece_id', 'beats', 'tempo', 'loudness', 'annotations'])
 
 
-def readMazurkaData(filename, preprocess=None):
+def read_mazurka_data(filename, preprocess=None):
     """Read a MazurkaBL-formatted performance file with optional preprocessing."""
-    with open(filename) as csvFile:
-        csvReader = csv.reader(csvFile)
+    with open(filename) as csv_file:
+        csv_reader = csv.reader(csv_file)
         # Read header
-        interpretIds = next(csvReader)[3:]  # First 3 columns are not relevant to us
+        interpret_ids = next(csv_reader)[3:]  # First 3 columns are not relevant to us
         # zip to read colum by column
-        data = zip(*(map(float, row[3:]) for row in csvReader))
+        data = zip(*(map(float, row[3:]) for row in csv_reader))
         if preprocess is not None:
             data = zip(data, preprocess(data))
         else:
             data = map(np.array, data)
-        return list(zip(interpretIds, data))
+        return list(zip(interpret_ids, data))
 
 
-def preprocessTimings(timings):
+def preprocess_timings(timings):
     """Map timings to tempo."""
     tempo = map(lambda time: 60/np.diff(time), timings)
     return tempo
 
 
-def readMazurkaTimings(filename):
+def read_mazurka_timings(filename):
     """Read a tempo in MazurkaBL format."""
-    return readMazurkaData(filename, preprocess=preprocessTimings)
+    return read_mazurka_data(filename, preprocess=preprocess_timings)
 
 
-def readAllMazurkaTimings(dirpath="data/beat_time"):
+def read_all_mazurka_timings(dirpath="data/beat_time"):
     """Read all tempos in a directory in MazurkaBL format."""
     # Retrieve all mazurka files
     files = [os.path.join(dirpath, file) for file in os.listdir(dirpath) if os.path.splitext(file)[1] == ".csv"]
     # Read and return them
-    return zip(files, map(readMazurkaTimings, files))
+    return zip(files, map(read_mazurka_timings, files))
 
 
-def readAllMazurkaData(dirpath="data/beat_dyn", preprocess=None):
+def read_all_mazurka_data(dirpath="data/beat_dyn", preprocess=None):
     """Read all of a directory in MazurkaBL format, with optional preprocessing."""
     # Retrieve all mazurka files
     files = [os.path.join(dirpath, file) for file in os.listdir(dirpath) if os.path.splitext(file)[1] == ".csv"]
     # Read and return them
-    return list(zip(files, map(lambda f: readMazurkaData(f, preprocess=preprocess), files)))
+    return list(zip(files, map(lambda f: read_mazurka_data(f, preprocess=preprocess), files)))
 
 
-def readMazurkaArcSegmentation(filename):
+def read_mazurka_arc_segmentation(filename):
     """Read a segmentation in MazurkaBL format."""
-    with open(filename) as csvFile:
-        csvReader = csv.reader(csvFile)
-        seg = [(line[0], [int(number) for number in line[1:] if number != '']) for line in csvReader]
+    with open(filename) as csv_file:
+        csv_reader = csv.reader(csv_file)
+        seg = [(line[0], [int(number) for number in line[1:] if number != '']) for line in csv_reader]
     return seg
 
 
-def matchMazurkaSegmentation(filename, dirpath="deaf_structure_tempo", dataType='tempo'):
+def match_mazurka_segmentation(filename, dirpath="deaf_structure_tempo", data_type='tempo'):
     """Find the corresponding segmentation and read it."""
-    if dataType == 'tempo':
+    if data_type == 'tempo':
         segbasename = os.path.basename(filename.replace("beat_time", "_man_seg"))
-    elif dataType == 'loudness':
+    elif data_type == 'loudness':
         segbasename = os.path.basename(filename.replace("beat_dynNORM", "_man_seg"))
     else:
-        raise NotImplementedError("Unknown dataType: "+dataType)
+        raise NotImplementedError("Unknown dataType: "+data_type)
     segfile = os.path.join(dirpath, segbasename)
     if os.path.isfile(segfile):
-        return readMazurkaArcSegmentation(segfile)
+        return read_mazurka_arc_segmentation(segfile)
     else:
         return []
 
 
-def readAllMazurkaTimingsAndSeg(timingPath="data/beat_time", segPath="data/deaf_structure_tempo"):
+def read_all_mazurka_timings_and_seg(timing_path="data/beat_time", seg_path="data/deaf_structure_tempo"):
     """Read tempo segmentations and match them with tempo data."""
-    allData = []
-    allTimings = readAllMazurkaTimings(timingPath)
-    for filename, timings in allTimings:
-        segmentations = matchMazurkaSegmentation(filename, segPath)
-        for pID, seg in segmentations:
-            tim = next((times for pIDmatch, times in timings if pID == pIDmatch), None)
+    all_data = []
+    all_timings = read_all_mazurka_timings(timing_path)
+    for filename, timings in all_timings:
+        segmentations = match_mazurka_segmentation(filename, seg_path)
+        for pid, seg in segmentations:
+            tim = next((times for pid_match, times in timings if pid == pid_match), None)
             if tim is None:
-                print("Warning: Encountered performer without a match in timings: "+pID+" in "+filename)
+                print("Warning: Encountered performer without a match in timings: "+pid+" in "+filename)
             else:
-                allData.append((filename, pID, tim, seg))
-    return allData
+                all_data.append((filename, pid, tim, seg))
+    return all_data
 
 
-def readAllMazurkaDataAndSeg(timingPath="data/beat_dyn", segPath="data/deaf_structure_loudness",
-                             preprocess=None, dataType='loudness'):
+def read_all_mazurka_data_and_seg(timing_path="data/beat_dyn", seg_path="data/deaf_structure_loudness",
+                                  preprocess=None, data_type='loudness'):
     """Read arbitrary segmentations and match them with arbitrary data."""
-    allPerf = []
-    allData = readAllMazurkaData(timingPath, preprocess=preprocess)
-    for filename, timings in allData:
-        segmentations = matchMazurkaSegmentation(filename, segPath, dataType=dataType)
-        for pID, seg in segmentations:
-            tim = next((times for pIDmatch, times in timings if pID == pIDmatch), None)
+    all_perf = []
+    all_data = read_all_mazurka_data(timing_path, preprocess=preprocess)
+    for filename, timings in all_data:
+        segmentations = match_mazurka_segmentation(filename, seg_path, data_type=data_type)
+        for pid, seg in segmentations:
+            tim = next((times for pid_match, times in timings if pid == pid_match), None)
             if tim is None:
-                print("Warning: Encountered performer without a match in timings: "+pID+" in "+filename)
+                print("Warning: Encountered performer without a match in timings: "+pid+" in "+filename)
             else:
-                allPerf.append((filename, pID, tim, seg))
-    return allPerf
+                all_perf.append((filename, pid, tim, seg))
+    return all_perf
 
 
 def read_cosmo_beats(filepath):

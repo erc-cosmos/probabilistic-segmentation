@@ -4,22 +4,23 @@ import os
 from typing import Iterable, Mapping, Tuple, Union
 
 
-def writeMarginals(filename: Union[os.PathLike, str], marginals: Iterable[float]) -> None:
+def write_marginals(filename: Union[os.PathLike, str], marginals: Iterable[float]) -> None:
     """Write a set of marginals to disk as csv."""
     os.makedirs(os.path.dirname(filename), exist_ok=True)
 
-    with open(filename, 'w') as csvFile:
-        writer = csv.writer(csvFile)
+    with open(filename, 'w') as csv_file:
+        writer = csv.writer(csv_file)
         writer.writerow(["Beat", "Credence of final"])
         writer.writerows(enumerate(marginals))
 
 
-def writeMeasures(filename: Union[os.PathLike, str], measures: Mapping[str, Tuple[float, float, float, float]]) -> None:
+def write_measures(filename: Union[os.PathLike, str], measures: Mapping[str, Tuple[float, float, float, float]])\
+        -> None:
     """Write a set of segmentation measures to disk."""
     os.makedirs(os.path.dirname(filename), exist_ok=True)
 
-    with open(filename, 'w') as csvFile:
-        writer = csv.writer(csvFile)
+    with open(filename, 'w') as csv_file:
+        writer = csv.writer(csv_file)
         writer.writerow(["feature", "piece", "performer", "",
                         "Quadratic/Brier score", "F1-score", "Recall", "Precision"])
         rows = [[*key.split('/'), *scores]

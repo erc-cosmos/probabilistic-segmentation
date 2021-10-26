@@ -16,21 +16,21 @@ def preprocess(kw, preprocessor):
     return decorator
 
 
-def singleOrList(func=None, *, kw=None):
+def single_or_list(func=None, *, kw=None):
     """
     Decorate to convert a single value to a list of length 1.
 
     If kw is specified, conversion is applied to this argument, otherwise to the first argument
     """
     if func is None:
-        return functools.partial(singleOrList, kw=kw)
+        return functools.partial(single_or_list, kw=kw)
 
-    def ensureList(maybeListArg):
-        return [maybeListArg] if not isinstance(maybeListArg, list) else maybeListArg
+    def ensure_list(maybe_list_arg):
+        return [maybe_list_arg] if not isinstance(maybe_list_arg, list) else maybe_list_arg
     if kw is None:
         @functools.wraps(func)
-        def wrapper(maybeListArg, *args, **kwargs):
-            return func(ensureList(maybeListArg), *args, **kwargs)
+        def wrapper(maybe_list_arg, *args, **kwargs):
+            return func(ensure_list(maybe_list_arg), *args, **kwargs)
         return wrapper
     else:
-        return preprocess(kw, ensureList)(func)
+        return preprocess(kw, ensure_list)(func)

@@ -1,14 +1,13 @@
 """Visualisations for segmentations."""
 import matplotlib.pyplot as plt
 import numpy as np
-import scipy as sp
-import scipy.signal
+from scipy import signal
 
 
 def plot_segment_matrix(data, smoothing):
     """Display a matrix representation of the segment likelihoods."""
     # Sum the values in each region
-    smoothed = sp.signal.convolve2d(data, np.ones((smoothing, smoothing)), mode="same")
+    smoothed = signal.convolve2d(data, np.ones((smoothing, smoothing)), mode="same")
     # Force the diagonal
     for i in range(np.shape(smoothed)[0]):
         smoothed[i, i] = 1
