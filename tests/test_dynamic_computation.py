@@ -1,14 +1,14 @@
 """Tests for the dynamicComputation module."""
 import functools
 
-import dynamic_computation as dc
+from bayes_arcs import dynamic_computation as dc
+from bayes_arcs import length_priors
+from bayes_arcs import synthetic_data as sd
 import hypothesis
 import hypothesis.strategies as st
-import length_priors
 import numpy as np
 import numpy.testing as npt
 import pytest
-import synthetic_data as sd
 
 import default_vars
 

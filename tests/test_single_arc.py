@@ -1,10 +1,11 @@
 """Tests for the singleArc submodule."""
+from bayes_arcs import single_arc as sa
 import hypothesis
 import hypothesis.strategies as st
 import numpy as np
 import pytest
+
 import default_vars
-import single_arc as sa
 
 
 def test_likelihood_1d():

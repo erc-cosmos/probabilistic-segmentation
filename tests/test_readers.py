@@ -1,8 +1,6 @@
 """Tests for the readers."""
-
-
+from bayes_arcs import readers
 import numpy as np
-import readers
 
 
 def test_mazurka_collection_size():

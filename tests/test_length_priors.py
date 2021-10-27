@@ -1,7 +1,7 @@
 """Tests for the classes in lengthPriors."""
+from bayes_arcs import length_priors
 import hypothesis
 import hypothesis.strategies as st
-import length_priors
 import pytest
 
 means = st.floats(min_value=0, allow_infinity=False)

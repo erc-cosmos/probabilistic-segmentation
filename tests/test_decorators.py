@@ -1,5 +1,5 @@
 """Testing for decorators."""
-import my_decorators
+from bayes_arcs import my_decorators
 
 
 def test_preprocess_say_hello():

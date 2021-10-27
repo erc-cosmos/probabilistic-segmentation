@@ -1,8 +1,8 @@
 """Tests for scoring.py."""
+from bayes_arcs import scoring
 import hypothesis
 import hypothesis.strategies as st
 import pytest
-import scoring
 
 segmentations = st.lists(st.floats(min_value=0, allow_infinity=False))
 
