@@ -5,8 +5,8 @@ from typing import Any, List, Optional, Tuple
 
 import numpy as np
 
-import length_priors
-import single_arc as sa
+from . import length_priors
+from . import single_arc as sa
 
 
 def compute_maxima_a_posteriori(data, arc_prior, length_prior):

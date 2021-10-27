@@ -1,12 +1,12 @@
 """Batch run on a whole dataset."""
 import os.path
 
-from default_priors import arc_prior_loud
-from default_priors import length_prior_params_loud
-import dynamic_computation as dc
-from length_priors import NormalLengthPrior
-from readers import read_all_mazurka_data
-import writers
+from . import dynamic_computation as dc
+from . import writers
+from .default_priors import arc_prior_loud
+from .default_priors import length_prior_params_loud
+from .length_priors import NormalLengthPrior
+from .readers import read_all_mazurka_data
 
 
 def trim_pid(pid):
