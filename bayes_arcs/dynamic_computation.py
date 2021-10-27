@@ -109,7 +109,7 @@ def compute_alphas(length_prior, data_likelihoods):
 
     # Indices are shifted by 1 compared to the doc !!!
     # The data is assumed to start with an arc
-    alphas = [0]  # Stored as log !
+    alphas: list[float] = [0]  # Stored as log !
     data_len = len(data_likelihoods)
     for n in range(0, data_len):
         min_index = length_prior.get_min_index(n)
@@ -179,7 +179,7 @@ def _compute_marginals(length_prior, data_likelihoods, return_2d=False):
         return marginals
 
 
-def _marginal_segments(data_likelihoods: np.ndarray, alphas: np.ndarray, betas: np.ndarray) -> np.ndarray:
+def _marginal_segments(data_likelihoods, alphas, betas):
     """Compute marginals for segments based on alpha/beta probabilities and arc likelihoods.
 
     Args:
@@ -191,7 +191,7 @@ def _marginal_segments(data_likelihoods: np.ndarray, alphas: np.ndarray, betas: 
         2D np.ndarray: probability of a segment starting and ending at indices
     """
     start_end_marginals = np.zeros(np.shape(data_likelihoods))
-    for (i, j) in np.ndindex(np.shape(start_end_marginals)):
+    for (i, j) in np.ndindex(np.shape(data_likelihoods)):
         start_end_marginals[i, j] = np.exp(alphas[i]+betas[j+1]+data_likelihoods[i, j]-alphas[-1])
     return start_end_marginals
 

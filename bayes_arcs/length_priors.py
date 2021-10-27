@@ -1,6 +1,7 @@
 """Module for arc length priors."""
 import collections
 import functools
+from typing import Mapping
 
 from scipy.stats import norm  # type:ignore
 
@@ -96,7 +97,7 @@ class NormalLengthPrior(ContinuousLengthPrior):
 class DiscreteLengthPrior:
     """Prior using a discrete distribution."""
 
-    def __init__(self, data_length, distribution, max_length=None):
+    def __init__(self, data_length: int, distribution: Mapping[int, float], max_length: int = None):
         """Construct a DiscreteLengthPrior."""
         self._dataLength = data_length
         self._distrib = distribution
@@ -117,11 +118,11 @@ class DiscreteLengthPrior:
         return self._dataLength
 
     @property
-    def max_length(self):
+    def max_length(self) -> int:
         """Access maxLength."""
         return self._max_length
 
-    def eval_cond(self, i, j):
+    def eval_cond(self, i, j) -> float:
         """
         Return the likelihood of the next boundary being at j given a boundary at i.
 
