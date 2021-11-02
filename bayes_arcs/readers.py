@@ -7,9 +7,11 @@ Collections are either in the cosmonote format or MazurkaBL format.
 
 from collections import namedtuple
 import csv
+import itertools as itt
 import os
 
 import numpy as np
+import pandas as pd
 from scipy.interpolate import UnivariateSpline
 
 CosmonoteLoudness = namedtuple("Loudness", ['time', 'loudness'])
@@ -114,6 +116,41 @@ def read_all_mazurka_data_and_seg(timing_path="data/beat_dyn", seg_path="data/de
     return all_perf
 
 
+def load_mazurka_dataset_with_annot(timing_path: str = "data/beat_time", dyn_path: str = "data/beat_dyn",
+                                    seg_time_path: str = "data/deaf_structure_tempo",
+                                    seg_dyn_path: str = "data/deaf_structure_loudness") -> pd.DataFrame:
+    """Load all data for the MazurkaBL dataset with structural annotations.
+
+    Args:
+        timing_path (str, optional): path to the timing data. Defaults to "data/beat_time".
+        dyn_path (str, optional): path to the dynamics data. Defaults to "data/beat_dyn".
+        seg_time_path (str, optional): path to timing-based segmentations. Defaults to "data/deaf_structure_tempo".
+        seg_dyn_path (str, optional): path to dynamics-based segmentations. Defaults to "data/deaf_structure_loudness".
+
+    Returns:
+        pd.Dataframe: Dataframe containing for each performance, in that order:
+            - the piece identifier
+            - the interpret identifier
+            - the tempo data
+            - the tempo segmentation
+            - the dynamics data
+            - the dynamics segmentation
+    """
+    timings_data = read_all_mazurka_timings_and_seg(timing_path, seg_time_path)
+    dyn_data = read_all_mazurka_data_and_seg(dyn_path, seg_dyn_path)
+    return pd.DataFrame([(piece, interpret, tempo, tempo_seg, dyn, dyn_seg)
+                         for ((piece, interpret, tempo, tempo_seg), (_piece2, interpret2, dyn, dyn_seg))
+                         in itt.product(timings_data, dyn_data)
+                         if interpret == interpret2],
+                        columns=("file", "performer id", "tempo", "tempo segmentation",
+                                 "loudness", "loudness segmentation"))
+
+
+def load_mazurka_dataset(timing_path="data/beat_time", dyn_path="data/beat_dyn"):
+    """Load all data for the MazurkaBL dataset."""
+    pass
+
+
 def read_cosmo_beats(filepath):
     """Read a beats file in Cosmonote format."""
     with open(filepath) as csv_file:
@@ -208,7 +245,7 @@ def read_all_cosmo_data(source_path="data/Chopin Collection/"):
     return all_data
 
 
-if __name__ == "__main__":
+# if __name__ == "__main__":
     # filename = "M06-2beat_time.csv"
     # data = readMazurkaTimings(filename)
     # for d in data:
@@ -252,8 +289,8 @@ if __name__ == "__main__":
     # plt.show()
     # print(loud)
 
-    data = read_all_cosmo_data()
+    # data = read_all_cosmo_data()
 
-    print(data)
+    # print(data)
 
-    print("Done")
+    # print("Done")
