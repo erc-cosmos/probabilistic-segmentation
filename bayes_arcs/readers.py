@@ -27,7 +27,7 @@ def read_mazurka_data(filename, preprocess=None):
         # Read header
         interpret_ids = next(csv_reader)[3:]  # First 3 columns are not relevant to us
         # zip to read colum by column
-        data = zip(*(map(float, row[3:]) for row in csv_reader))
+        data = list(zip(*(map(float, row[3:]) for row in csv_reader)))
         if preprocess is not None:
             data = zip(data, preprocess(data))
         else:
@@ -175,6 +175,124 @@ def read_cosmo_annotation(filepath, strengths=(2, 3, 4)):
         return annot
 
 
+def preprocess_tempo_outlier_correction(timings: list[float], threshold: float = 2, max_passes: int = 3) -> np.ndarray:
+    """Map timings to tempo, correcting for aberrant values.
+
+    Args:
+        timings ([list[float]]): Timings sequence for a single piece
+        threshold (float, optional): Maximum deviation factor from the average before correcting. Defaults to 3.
+        max_passes (int, optional): Maximum iterations of correction. Defaults to 3.
+
+    Returns:
+        [np.ndarray]: Array of the corrected instantaneous tempos
+    """
+    timings = timings.copy()
+
+    def locate_errors(timings, threshold: float = 1.5, frame_length: int = 10):
+        def trailing_mean(timings, frame_length):
+            mean_iois = [(timings[i]-timings[0])/(i) for i in range(1, frame_length)]
+            mean_iois.extend(np.convolve(np.diff(timings), np.ones(frame_length), mode="valid")/frame_length)
+            return mean_iois[:-1]
+
+        def leading_mean(timings, frame_length):
+            mean_iois = list(np.convolve(np.diff(timings), np.ones(frame_length), mode="valid")/frame_length)
+            mean_iois.extend([(timings[-1]-timings[-i-1])/(i) for i in reversed(range(1, frame_length))])
+            return mean_iois[1:]
+
+        for j, (ioi, lead, trail) in enumerate(zip(np.diff(timings),
+                                                   [*leading_mean(timings, frame_length=frame_length), np.nan],
+                                                   [np.nan, *trailing_mean(timings, frame_length=frame_length)])):
+            if ioi < min(lead, trail)/threshold:
+                # A beat is abnormal if it's much faster than the leading or following beats
+                yield j
+
+    for _ in range(max_passes):
+        changed = False
+        for j in locate_errors(timings, threshold=threshold, frame_length=10):
+            print(f"Aberrant value at index {j}")
+            # Basic fix with linear interpolation
+            if j == 0:
+                timings[j+1] = (timings[j]+timings[j+2])/2
+            elif j == len(timings)-2:
+                timings[j] = (timings[j-1]+timings[j+1])/2
+            else:
+                interp1 = timings[j-1]
+                interp2 = timings[j+2]
+                timings[j] = (2*interp1+interp2)/3
+                timings[j+1] = (2*interp2+interp1)/3
+            changed = True
+        if not changed:
+            break
+    return 60/np.diff(timings)
+
+# def read_full_one_per_perf(main_folder):
+#     pieces = sorted([f for f in os.listdir(main_folder)
+#                      if os.path.isdir(os.path.join(main_folder, f))])
+#     print(pieces)
+#     full_data = []
+#     for piece in pieces:
+#         piece_folder = os.path.join(main_folder, piece)
+#         piece_data = []
+#         perfs = [f for f in os.listdir(piece_folder) if f.endswith('.csv')]
+#         for perf in perfs:
+#             data_path = os.path.join(piece_folder, perf)
+#             data = pd.read_csv(data_path)
+#             perf_id, _ = os.path.splitext(perf)
+#             piece_data.append((perf_id, np.array(data['tempo'])))
+#         full_data.append((piece, piece_data))
+#     return full_data
+
+
+def infer_data_type_from_filenames(filenames: list[str]):
+    """Infer the data type from a set of file names.
+
+    Args:
+        filenames (list[str]): The file names to consider
+    Returns:
+        'tempo'|'beats'|'loudness'|'mixed'|'auto': The detected data type(s) or 'auto' if unsuccessful
+    """
+    # TODO
+    return 'auto'
+
+
+def read_cosmo_piece(piece_folder, data_type='auto', include_average=False):
+    """Read a Cosmonote formatted set of performances.
+
+    Args:
+        piece_folder (str): Path to the folder containing the performances's data
+        type ('tempo'|'beats'|'loudness'|'mixed'|'auto'): [NYI] Type of data to process. Defaults to 'auto'.
+    """
+    piece_data = []
+    perfs = [f for f in os.listdir(piece_folder) if f.endswith('.csv')]
+    for perf in perfs:
+        data_path = os.path.join(piece_folder, perf)
+        data = pd.read_csv(data_path)
+        perf_id, _ = os.path.splitext(perf)
+        piece_data.append((perf_id, np.array(data['tempo'])))
+    if include_average:
+        _, raw_data = zip(*piece_data)
+        piece_data.append(('Average', np.mean(raw_data, axis=0)))
+    return piece_data
+
+
+def read_cosmo_collection(main_folder, data_type='auto', include_average=False):
+    """Read a Cosmonote formatted set of performances, grouped by piece.
+
+    Args:
+        main_folder ([type]): Path to the folder containing the collection's data
+        type ('tempo'|'beats'|'loudness'|'mixed'|'auto', optional): [NYI] Type of data to process. Defaults to 'auto'.
+    """
+    pieces = sorted([f for f in os.listdir(main_folder)
+                     if os.path.isdir(os.path.join(main_folder, f))])
+    print(pieces)
+    full_data = []
+    for piece in pieces:
+        piece_folder = os.path.join(main_folder, piece)
+        piece_data = read_cosmo_piece(piece_folder, data_type=data_type, include_average=include_average)
+        full_data.append((piece, piece_data))
+    return full_data
+
+
 def preprocess_cosmo_loudness(loudness, beats):
     """Preprocess loudness by interpolating at beats positions."""
     x, y = zip(*loudness)
@@ -243,6 +361,17 @@ def read_all_cosmo_data(source_path="data/Chopin Collection/"):
         data = CosmonoteData(piece_id, beats, tempo, loudness, annot_set)
         all_data.append(data)
     return all_data
+
+
+def read_posterior(filepath: str):
+    """Reads a saved sequence of posteriors.
+
+    Args:
+        filepath (str): The path where the data was saved
+    """
+    df = pd.read_csv(filepath, names=["count", "posterior"])
+    return df["posterior"]
+
 
 
 # if __name__ == "__main__":
