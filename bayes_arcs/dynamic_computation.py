@@ -34,7 +34,7 @@ def compute_data_likelihood(data, arc_prior, length_prior, linear_sampling=True)
     A slice of data is indexed by start and end index (inclusive) and is valid
     if start<=end and if its length is less than the specified maximum.
     """
-    return (_compute_data_transition_matrix(data, arc_prior, linear_sampling)
+    return (_compute_data_transition_matrix(data, arc_prior, length_prior, linear_sampling)
             + _compute_prior_transition_matrix(len(data), length_prior))
 
 
@@ -55,9 +55,12 @@ def _compute_prior_transition_matrix(data_length, length_prior):
     return _compute_transition_matrix(data_length, wrapper)
 
 
-def _compute_data_transition_matrix(data, arc_prior, linear_sampling=True):
+def _compute_data_transition_matrix(data, arc_prior, length_prior, linear_sampling=True):
     def wrapper(start, end):
-        return sa.arc_likelihood(arc_prior, sa.normalize_x(data[start:end+1], linear_sampling=linear_sampling))
+        if end-start <= length_prior.max_length:
+            return sa.arc_likelihood(arc_prior, sa.normalize_x(data[start:end+1], linear_sampling=linear_sampling))
+        else:
+            return np.NINF
     return _compute_transition_matrix(len(data), wrapper)
 
 
