@@ -37,7 +37,7 @@ length_prior = length_priors.NormalLengthPrior(mean=15, stddev=5, x=list(range(l
 
 # %%
 # Compute posterior marginals
-posterior_marginals, post_segments = dc.run_alpha_beta(sample_data, arc_prior, length_prior, return_2d=True)
+posterior_marginals, post_segments = dc.compute_both_posteriors(sample_data, arc_prior, length_prior)
 
 
 # %%

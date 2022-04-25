@@ -51,7 +51,7 @@ arc_prior = {
 
 
 # %%
-post, post_bidim = dc.run_alpha_beta(in_data.ARI, arc_prior, length_prior, return_2d=True)
+post, post_bidim = dc.compute_both_posteriors(in_data.ARI, arc_prior, length_prior)
 
 
 # %%
@@ -123,7 +123,7 @@ arc_prior = {
 
 
 # %%
-post2, post2_bidim = dc.run_alpha_beta(in_data.ARI, arc_prior, length_prior, return_2d=True)
+post2, post2_bidim = dc.compute_both_posteriors(in_data.ARI, arc_prior, length_prior)
 
 
 # %%
@@ -241,7 +241,7 @@ plt.show()
 
 
 # %%
-prior_marginals, prior_bidim = dc.run_alpha_beta([0 for _ in in_data.ARI], arc_prior, length_prior, return_2d=True)
+prior_marginals, prior_bidim = dc.compute_both_posteriors([0 for _ in in_data.ARI], arc_prior, length_prior)
 
 
 # %%
@@ -250,7 +250,7 @@ _ = segment_viz.plot_segment_with_signal(prior_marginals, [0 for _ in in_data.AR
 
 # %%
 geo_prior = length_priors.GeometricLengthPrior(len(in_data.ARI), .8, 60, 5)
-geo_prior_marginals, geo_prior_bidim = dc.run_alpha_beta([0 for _ in in_data.ARI], arc_prior, geo_prior, return_2d=True)
+geo_prior_marginals, geo_prior_bidim = dc.compute_both_posteriors([0 for _ in in_data.ARI], arc_prior, geo_prior)
 
 
 # %%
@@ -259,7 +259,7 @@ _ = segment_viz.plot_segment_with_signal(geo_prior_marginals, [0 for _ in in_dat
 
 # %%
 uni_prior = length_priors.EmpiricalLengthPrior(list(range(10, 15)), len(in_data.ARI))
-uni_prior_marginals, uni_prior_bidim = dc.run_alpha_beta([0 for _ in in_data.ARI], arc_prior, uni_prior, return_2d=True)
+uni_prior_marginals, uni_prior_bidim = dc.compute_both_posteriors([0 for _ in in_data.ARI], arc_prior, uni_prior)
 
 
 # %%
@@ -279,7 +279,7 @@ print(geo_prior.distrib.get(10)*geo_prior.distrib.get(20))
 
 # %%
 geo_prior = length_priors.GeometricLengthPrior(30, 0.8, 18, 11)
-geo_prior_marginals, geo_prior_bidim = dc.run_alpha_beta([0 for _ in range(30)], arc_prior, geo_prior, return_2d=True)
+geo_prior_marginals, geo_prior_bidim = dc.compute_both_posteriors([0 for _ in range(30)], arc_prior, geo_prior)
 
 
 # %%

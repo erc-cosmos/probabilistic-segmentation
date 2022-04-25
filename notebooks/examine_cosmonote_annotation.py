@@ -163,7 +163,7 @@ for piece in cosmo_data:
                                                    length_prior_params['stddev']*2,
                                                    range(len(piece.tempo)),
                                                    length_prior_params['maxLength']*2)
-    posterior_marginals = dc.run_alpha_beta(piece.tempo[1:], arc_prior, length_prior)
+    posterior_marginals = dc.compute_boundary_posteriors(piece.tempo[1:], arc_prior, length_prior)
     segmentations[piece.piece_id] = posterior_marginals
 
     fig, ax1 = plt.subplots()
@@ -268,7 +268,7 @@ for piece in cosmo_data:
                                                    length_prior_params['stddev']*2,
                                                    range(len(piece.loudness)),
                                                    length_prior_params['maxLength']*2)
-    posterior_marginals = dc.run_alpha_beta(piece.loudness, arc_prior, length_prior)
+    posterior_marginals = dc.compute_boundary_posteriors(piece.loudness, arc_prior, length_prior)
     segmentations_loud[piece.piece_id] = posterior_marginals
 
 

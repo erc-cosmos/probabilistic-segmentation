@@ -39,7 +39,7 @@ def batch_run(full_data, arc_prior, length_prior_params, output_dir, piece_name_
             length_prior = NormalLengthPrior(length_prior_params['mean'], length_prior_params['stddev'],
                                              range(len(data)), length_prior_params['maxLength'])
 
-            posterior_marginals = dc.run_alpha_beta(data, arc_prior, length_prior)
+            posterior_marginals = dc.compute_boundary_posteriors(data, arc_prior, length_prior)
 
             writers.write_marginals(os.path.join(output_dir, f"{piece_formatted}_{pid}_pm.csv"), posterior_marginals)
 

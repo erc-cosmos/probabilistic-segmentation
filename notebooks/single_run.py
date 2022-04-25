@@ -23,7 +23,8 @@ length_prior = length_priors.NormalLengthPrior(length_prior_params['mean'], leng
 
 
 # %%
-post_boundaries, post_segments = dc.run_alpha_beta(tempo, arc_prior, length_prior, return_2d=True)
+post_boundaries, post_segments = dc.compute_both_posteriors(tempo, arc_prior, length_prior)
+
 
 # %%
 fig = segment_viz.plot_segment_with_signal(post_marginals=post_boundaries,

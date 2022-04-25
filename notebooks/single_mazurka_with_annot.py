@@ -24,7 +24,7 @@ length_prior = length_priors.NormalLengthPrior(16, 8, range(
     len(in_data)), 30)
 
 # %%
-post_bound, post_segment = dc.run_alpha_beta(in_data, arc_prior=arc_prior, length_prior=length_prior, return_2d=True)
+post_bound, post_segment = dc.compute_both_posteriors(in_data, arc_prior=arc_prior, length_prior=length_prior)
 
 # %%
 print(cosmo_piece.piece_id)

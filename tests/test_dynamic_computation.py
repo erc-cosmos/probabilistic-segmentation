@@ -34,7 +34,7 @@ def test_marginals_are_probability(data):
     """Check that marginals are probabilities."""
     hidden, data = data
     length_prior = length_priors.NormalLengthPrior(15, 5, list(range(len(data))), max_length=20)
-    posterior_marginals = dc.run_alpha_beta(data, default_vars.arc_prior, length_prior)
+    posterior_marginals = dc.compute_boundary_posteriors(data, default_vars.arc_prior, length_prior)
     assert 0 <= np.nanmin(posterior_marginals)
     assert 1.0001 >= np.nanmax(posterior_marginals)
 
@@ -116,7 +116,7 @@ def test_marginals_sum_over_minimum_segment_count(data):
     """Check that the marginals sum over the minimum number of boundaries."""
     hidden, data = data
     length_prior = length_priors.EmpiricalLengthPrior(range(11), data_length=len(data), max_length=10)
-    marginals = dc.run_alpha_beta(data, default_vars.arc_prior, length_prior)
+    marginals = dc.compute_boundary_posteriors(data, default_vars.arc_prior, length_prior)
     assert sum(marginals) >= np.ceil(length_prior.data_length/float(length_prior.max_length+1))
 
 
@@ -126,7 +126,7 @@ def test_marginals_sum_over_minimum_segment_count_with_normal_prior(data):
     """Check that the marginals sum over the minimum number of boundaries."""
     hidden, data = data
     length_prior = length_priors.NormalLengthPrior(15, 5, list(range(len(data))), max_length=20)
-    marginals = dc.run_alpha_beta(data, default_vars.arc_prior, length_prior)
+    marginals = dc.compute_boundary_posteriors(data, default_vars.arc_prior, length_prior)
     assert sum(marginals) >= np.ceil(length_prior.data_length/float(length_prior.max_length+1))
 
 
@@ -136,7 +136,7 @@ def test_marginals_2d_sum_to_marginals(data):
     """Check that the marginals sum over the minimum number of boundaries."""
     hidden, data = data
     length_prior = length_priors.NormalLengthPrior(15, 5, list(range(len(data))), max_length=20)
-    marginals, bidim_marginals = dc.run_alpha_beta(data, default_vars.arc_prior, length_prior, return_2d=True)
+    marginals, bidim_marginals = dc.compute_both_posteriors(data, default_vars.arc_prior, length_prior)
 
     npt.assert_allclose(sum(bidim_marginals), marginals)
 
@@ -157,9 +157,9 @@ def test_reverse_commutes(data):
         'cStd': 5,
         'noiseStd': 5
     }
-    marginals = dc.run_alpha_beta(data, arc_prior, length_prior)
+    marginals = dc.compute_boundary_posteriors(data, arc_prior, length_prior)
 
     r_data = list(reversed(data))
-    r_marginals = dc.run_alpha_beta(r_data, arc_prior, length_prior)
+    r_marginals = dc.compute_boundary_posteriors(r_data, arc_prior, length_prior)
 
     npt.assert_allclose(list(reversed(r_marginals[:-1])), marginals[:-1])

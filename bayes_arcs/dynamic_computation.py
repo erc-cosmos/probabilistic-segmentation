@@ -17,7 +17,7 @@ def compute_maxima_a_posteriori(data, arc_prior, length_prior):
     A slice of data is indexed by start and end index and is valid if start<end and
     if its length is less than the specified maximum.
     """
-    maxima_a_posteriori = [[{"LL": None, "Arc": None} for end in range(len(data))] for start in range(len(data))]
+    maxima_a_posteriori = [[{"LL": np.NINF, "Arc": None} for end in range(len(data))] for start in range(len(data))]
 
     # Fill up subdiagonals (rest is zeroes)
     for start in range(len(data)):
@@ -149,12 +149,48 @@ def compute_betas(length_prior, data_likelihoods):
     return betas
 
 
-def run_alpha_beta(data, arc_prior, length_prior, data_likelihoods=None, linear_sampling=True, return_2d=False):
-    """Run the alpha-beta algorithm to compute posterior marginals on arc boundaries."""
-    if data_likelihoods is None:
-        data_likelihoods = compute_data_likelihood(data, arc_prior, length_prior, linear_sampling=linear_sampling)
+def _compute_quantities(data, arc_prior, length_prior, linear_sampling):
+    """Compute the intermediary quantities."""
+    data_likelihoods = compute_data_likelihood(data, arc_prior, length_prior, linear_sampling=linear_sampling)
+    alphas = compute_alphas(length_prior, data_likelihoods)
+    betas = compute_betas(length_prior, data_likelihoods)
+    return data_likelihoods, alphas, betas
 
-    return _compute_marginals(length_prior=length_prior, data_likelihoods=data_likelihoods, return_2d=return_2d)
+
+def compute_both_posteriors(data, arc_prior, length_prior, linear_sampling=True):
+    """Compute posterior probabilities of boundaries and segments.
+
+    Args:
+        data (ndarray): Input data. Data points (lines) can be scalar or multidimensional
+        arc_prior (_type_): Prior on the arcs. Must match the dimension of data points.
+        length_prior (bayes_arcs.LengthPrior): A prior on segment length. Must be size compatible with the input
+        linear_sampling (bool, optional): Assume even sampling if True, require x data if False. Defaults to True.
+
+    Returns:
+        Tuple[1D ndarray, 2D ndarray]: The posteriors for boundaries and segments.
+    """
+    data_likelihoods, alphas, betas = _compute_quantities(data, arc_prior, length_prior, linear_sampling)
+
+    marginals = _marginal_boundaries(alphas, betas)
+    start_end_marginals = _marginal_segments(data_likelihoods, alphas, betas)
+    return marginals, start_end_marginals
+
+
+def compute_boundary_posteriors(data, arc_prior, length_prior, data_likelihoods=None, linear_sampling=True):
+    """Compute posterior probabilities of boundaries.
+
+    Args:
+        data (ndarray): Input data. Data points (lines) can be scalar or multidimensional
+        arc_prior (_type_): Prior on the arcs. Must match the dimension of data points.
+        length_prior (bayes_arcs.LengthPrior): A prior on segment length. Must be size compatible with the input
+        linear_sampling (bool, optional): Assume even sampling if True, require x data if False. Defaults to True.
+
+    Returns:
+        1D ndarray: The posteriors for boundaries.
+    """
+    _, alphas, betas = _compute_quantities(data, arc_prior, length_prior, linear_sampling)
+    marginals = _marginal_boundaries(alphas, betas)
+    return marginals
 
 
 def _marginal_boundaries(alphas: np.ndarray, betas: np.ndarray) -> np.ndarray:

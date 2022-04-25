@@ -66,7 +66,7 @@ sample_data[195] = 200
 length_prior = length_priors.NormalLengthPrior(length_prior_params['mean'], length_prior_params['stddev'], range(
     len(sample_data)), length_prior_params['maxLength'])
 
-post_boundaries, post_segments = dc.run_alpha_beta(sample_data, arc_prior, length_prior, return_2d=True)
+post_boundaries, post_segments = dc.compute_both_posteriors(sample_data, arc_prior, length_prior)
 
 
 # %%
@@ -82,7 +82,7 @@ _ = segment_viz.plot_segment_beams(post2_bidim=post_segments, max_length=length_
 
 length_prior = length_priors.GeometricLengthPrior(len(sample_data), 0.95, min_length=5, max_length=30)
 
-post_boundaries, post_segments = dc.run_alpha_beta(sample_data, arc_prior, length_prior, return_2d=True)
+post_boundaries, post_segments = dc.compute_both_posteriors(sample_data, arc_prior, length_prior)
 # _ = segment_viz.plot_segment_with_signal(post_marginals=post_boundaries, data=sampleData, data_time=sampleData)
 # _ = segment_viz.plot_segment_beams(post2_bidim=post_segments, length_prior=length_prior)
 
@@ -105,7 +105,7 @@ length_observations = sum([[length for length in np.diff(t_seg)]
 # %%
 length_prior = length_priors.EmpiricalLengthPrior(length_observations, len(sample_data), max_length=30)
 
-post_boundaries, post_segments = dc.run_alpha_beta(sample_data, arc_prior, length_prior, return_2d=True)
+post_boundaries, post_segments = dc.compute_both_posteriors(sample_data, arc_prior, length_prior)
 # _ = segment_viz.plot_segment_with_signal(post_marginals=post_boundaries, data=sampleData, data_time=sampleData)
 # _ = segment_viz.plot_segment_beams(post2_bidim=post_segments, length_prior=length_prior)
 
@@ -129,7 +129,7 @@ df.to_csv("boundaries_post.csv")
 
 length_prior4 = length_priors.EmpiricalLengthPrior(range(5, 30), len(sample_data), max_length=30)
 
-post_boundaries4, post_segments4 = dc.run_alpha_beta(sample_data, arc_prior, length_prior4, return_2d=True)
+post_boundaries4, post_segments4 = dc.compute_boundary_posteriors(sample_data, arc_prior, length_prior4)
 # _ = segment_viz.plot_segment_with_signal(post_marginals=post_boundaries, data=sampleData, data_time=sampleData)
 # _ = segment_viz.plot_segment_beams(post2_bidim=post_segments, length_prior=length_prior)
 

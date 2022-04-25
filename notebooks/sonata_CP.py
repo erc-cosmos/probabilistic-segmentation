@@ -78,7 +78,7 @@ arc_prior_loud = {
 
 
 # %%
-posteriors = dc.run_alpha_beta(loudness, arc_prior_loud, length_prior)
+posteriors = dc.compute_boundary_posteriors(loudness, arc_prior_loud, length_prior)
 
 
 # %%
@@ -120,7 +120,7 @@ arc_prior_loud_flat = {
 
 
 # %%
-posteriors_flat = dc.run_alpha_beta(loudness_flat, arc_prior_loud_flat, length_prior)
+posteriors_flat = dc.compute_boundary_posteriors(loudness_flat, arc_prior_loud_flat, length_prior)
 
 
 # %%
@@ -174,7 +174,7 @@ length_prior = length_priors.EmpiricalLengthPrior(
 
 
 # %%
-posteriors_flat = dc.run_alpha_beta(loudness_flat, arc_prior_loud_flat, length_prior)
+posteriors_flat = dc.compute_boundary_posteriors(loudness_flat, arc_prior_loud_flat, length_prior)
 
 
 # %%
