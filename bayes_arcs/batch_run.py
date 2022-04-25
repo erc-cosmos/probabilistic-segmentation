@@ -1,20 +1,22 @@
 """Batch run on a whole dataset."""
-import os.path
 import os
-import pandas as pd
-import numpy as np
+import os.path
 
-from pip import main
+import numpy as np
+import pandas as pd
 
 from . import dynamic_computation as dc
-from . import writers
-from .default_priors import arc_prior_loud, arc_prior_tempo
-from .default_priors import length_prior_params_loud, length_prior_params_tempo
-from .length_priors import NormalLengthPrior
 from . import readers
+from . import segment_viz
+from . import writers
+from .default_priors import arc_prior_loud
+from .default_priors import arc_prior_tempo
+from .default_priors import length_prior_params_loud
+from .default_priors import length_prior_params_tempo
+from .length_priors import NormalLengthPrior
 
 
-def trim_pid(pid):
+def trim_pid(pid: str):
     """Trim a performer ID to the relevant part."""
     return pid.split('-')[0]
 
@@ -69,11 +71,11 @@ def run_mazurka_tempo_correction():
         os.makedirs(piece_dir, exist_ok=True)
         for (pid, data) in performances:
             perf_path = os.path.join(piece_dir, f"{pid}.csv")
-            new_tempo = readers.preprocess_tempo_outlier_correction(data)
-            df = readers.pd.DataFrame(new_tempo, columns=["tempo"])
+            new_timings, new_tempo = readers.preprocess_tempo_outlier_correction(data, return_timings=True)
+            df = readers.pd.DataFrame({"time": new_timings, "tempo": new_tempo})
             df.to_csv(perf_path, index_label="count")
             if new_tempo != data:
-                fig_path = os.path.join(piece_dir, f"{pid}.pdf")
+                fig_path = os.path.join(piece_dir, f"{pid}_with_time.pdf")
                 compare_before_after(data, new_tempo, fig_path)
 
 
@@ -113,10 +115,24 @@ def run_m68_3_tempo():
 def run_tempo_autocorrected():
     """Pre-filled batch run for all Mazurka with the corrected tempo."""
     main_folder = "data/tempo_autocorrected"
-    full_data = readers.read_cosmo_collection(main_folder, include_average=True)
+    full_data = readers.read_cosmo_collection(main_folder, data_type="tempo",  include_average=True)
     arc_prior = arc_prior_tempo
     length_prior_params = length_prior_params_tempo
     output_dir = os.path.join('output', 'tempo_autocorrected')
+
+    batch_run(full_data, arc_prior, length_prior_params, output_dir, piece_name_finder=lambda f: f"Mazurka{f}")
+
+
+def run_tempo_autocorrected_with_loudness():
+    """Pre-filled batch run for all Mazurka with the corrected tempo and loudness."""
+    tempo_folder = "data/tempo_autocorrected"
+
+    full_data = readers.join_collections(readers.read_cosmo_collection(tempo_folder, data_type="tempo", include_average=False),
+                                         list(readers.read_all_mazurka_data("data/beat_dyn")))
+
+    arc_prior = [arc_prior_tempo, arc_prior_loud]
+    length_prior_params = length_prior_params_tempo
+    output_dir = os.path.join('output', 'tempo_autocorrected+dyn')
 
     batch_run(full_data, arc_prior, length_prior_params, output_dir, piece_name_finder=lambda f: f"Mazurka{f}")
 
@@ -150,6 +166,46 @@ def read_full_one_per_perf(main_folder):
         full_data.append((piece, piece_data))
     return full_data
 
+
+def run_1d_figures(marginals_dir, raw_data_dir):
+    raw_data = readers.read_cosmo_collection(raw_data_dir, data_type='mixed', include_average=False)
+    for (piece, piece_data) in raw_data:
+        for (interpret, data) in piece_data:
+            marginal_path = os.path.join(marginals_dir, f"Mazurka{piece}_{trim_pid(interpret)}_pm.csv")
+            marginals = readers.read_posterior(marginal_path)
+            fig = segment_viz.plot_segment_with_signal(post_marginals=marginals, data=data['tempo'],
+                                                       data_time=data['time'],
+                                                       smoothing=5, show=False,
+                                                       input_label="Tempo (bpm)", time_label="Time (s)")
+            fig_path = os.path.join(marginals_dir, f"Mazurka{piece}_{trim_pid(interpret)}_bound.png")
+            segment_viz.plt.savefig(fig_path)
+            segment_viz.plt.close(fig)
+            print(piece, interpret)
+        return  # Early return for debug
+
+
+def run_1d_figures_2input(marginals_dir, raw_data_dir, other_data_dir):
+    raw_data = readers.join_collections(
+        readers.read_cosmo_collection(raw_data_dir, data_type='beats', include_average=False),
+        readers.join_collections(readers.read_cosmo_collection(raw_data_dir, data_type='tempo', include_average=False),
+                                 list(readers.read_all_mazurka_data(other_data_dir))),
+    )
+    for (piece, piece_data) in raw_data:
+        for (interpret, data) in piece_data:
+            marginal_path = os.path.join(marginals_dir, f"Mazurka{piece}_{trim_pid(interpret)}_pm.csv")
+            marginals = readers.read_posterior(marginal_path)
+            data_time, data_values = zip(*data)
+            data_a, data_b = zip(*data_values)
+            fig = segment_viz.plot_segment_with_multiple_signals(post_marginals=marginals, data_a=data_a,
+                                                                 data_b=data_b,
+                                                                 data_time=data_time,
+                                                                 smoothing=1, show=False,
+                                                                 input_label_a="Tempo (bpm)", time_label="Time (s)")
+            fig_path = os.path.join(marginals_dir, f"Mazurka{piece}_{trim_pid(interpret)}_bound.png")
+            segment_viz.plt.savefig(fig_path)
+            segment_viz.plt.close(fig)
+            print(piece, interpret)
+        # return  # Early return for debug
 
 # if __name__ == "__main__":
 #     fullData = list(readers.read_all_mazurka_timings("data/beat_time"))
