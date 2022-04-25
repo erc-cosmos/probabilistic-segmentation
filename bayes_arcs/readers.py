@@ -9,6 +9,7 @@ from collections import namedtuple
 import csv
 import itertools as itt
 import os
+from typing import Any, List, Union, NamedTuple
 
 import numpy as np
 import pandas as pd
@@ -18,6 +19,11 @@ CosmonoteLoudness = namedtuple("Loudness", ['time', 'loudness'])
 CosmonoteAnnotation = namedtuple("Annotation", ['author', 'boundaries'])
 CosmonoteAnnotationSet = namedtuple("AnnotationSet", ['audio', 'loudness', 'tempo'])
 CosmonoteData = namedtuple("CosmonotePiece", ['piece_id', 'beats', 'tempo', 'loudness', 'annotations'])
+
+
+class CosmoPerf(NamedTuple):
+    perf_id: str
+    perf_data: Any  # Union[pd.DataFrame, np.ndarray]
 
 
 def read_mazurka_data(filename, preprocess=None):
@@ -32,7 +38,7 @@ def read_mazurka_data(filename, preprocess=None):
             data = zip(data, preprocess(data))
         else:
             data = map(np.array, data)
-        return list(zip(interpret_ids, data))
+        return [CosmoPerf(perf_id, perf_data) for perf_id, perf_data in zip(interpret_ids, data)]
 
 
 def preprocess_timings(timings):
@@ -175,16 +181,14 @@ def read_cosmo_annotation(filepath, strengths=(2, 3, 4)):
         return annot
 
 
-def preprocess_tempo_outlier_correction(timings: list[float], threshold: float = 2, max_passes: int = 3) -> np.ndarray:
+def tempo_outlier_correction_with_timings(timings: list[float], *,
+                                          threshold: float = 2, max_passes: int = 3) -> np.ndarray:
     """Map timings to tempo, correcting for aberrant values.
 
     Args:
-        timings ([list[float]]): Timings sequence for a single piece
-        threshold (float, optional): Maximum deviation factor from the average before correcting. Defaults to 3.
-        max_passes (int, optional): Maximum iterations of correction. Defaults to 3.
-
+        see `:func:preprocess_tempo_outlier_correction`
     Returns:
-        [np.ndarray]: Array of the corrected instantaneous tempos
+        [np.ndarray]: Array of the corrected instantaneous tempos with their timings
     """
     timings = timings.copy()
 
@@ -223,24 +227,24 @@ def preprocess_tempo_outlier_correction(timings: list[float], threshold: float =
             changed = True
         if not changed:
             break
-    return 60/np.diff(timings)
+    return np.array([timings[1:], 60/np.diff(timings)])
 
-# def read_full_one_per_perf(main_folder):
-#     pieces = sorted([f for f in os.listdir(main_folder)
-#                      if os.path.isdir(os.path.join(main_folder, f))])
-#     print(pieces)
-#     full_data = []
-#     for piece in pieces:
-#         piece_folder = os.path.join(main_folder, piece)
-#         piece_data = []
-#         perfs = [f for f in os.listdir(piece_folder) if f.endswith('.csv')]
-#         for perf in perfs:
-#             data_path = os.path.join(piece_folder, perf)
-#             data = pd.read_csv(data_path)
-#             perf_id, _ = os.path.splitext(perf)
-#             piece_data.append((perf_id, np.array(data['tempo'])))
-#         full_data.append((piece, piece_data))
-#     return full_data
+
+def preprocess_tempo_outlier_correction(timings: list[float], *,
+                                        return_timings: bool = False,
+                                        threshold: float = 2, max_passes: int = 3) -> np.ndarray:
+    """Map timings to tempo, correcting for aberrant values.
+
+    Args:
+        timings ([list[float]]): Timings sequence for a single piece
+        threshold (float, optional): Maximum deviation factor from the average before correcting. Defaults to 3.
+        max_passes (int, optional): Maximum iterations of correction. Defaults to 3.
+
+    Returns:
+        [np.ndarray]: Array of the corrected instantaneous tempos
+    """
+    _, tempo = tempo_outlier_correction_with_timings(timings, threshold=threshold, max_passes=max_passes)
+    return tempo
 
 
 def infer_data_type_from_filenames(filenames: list[str]):
@@ -262,17 +266,31 @@ def read_cosmo_piece(piece_folder, data_type='auto', include_average=False):
         piece_folder (str): Path to the folder containing the performances's data
         type ('tempo'|'beats'|'loudness'|'mixed'|'auto'): [NYI] Type of data to process. Defaults to 'auto'.
     """
-    piece_data = []
-    perfs = [f for f in os.listdir(piece_folder) if f.endswith('.csv')]
+    piece_data: List[CosmoPerf] = []
+    perfs = sorted([f for f in os.listdir(piece_folder) if f.endswith('.csv')])
     for perf in perfs:
         data_path = os.path.join(piece_folder, perf)
-        data = pd.read_csv(data_path)
         perf_id, _ = os.path.splitext(perf)
-        piece_data.append((perf_id, np.array(data['tempo'])))
+        perf_data = read_cosmo_perf(data_path, data_type)
+        piece_data.append(CosmoPerf(perf_id, perf_data))
     if include_average:
+        if data_type == "mixed":
+            raise NotImplementedError("Average is not yet compatible with Mixed data")
         _, raw_data = zip(*piece_data)
-        piece_data.append(('Average', np.mean(raw_data, axis=0)))
+        piece_data.append(CosmoPerf('Average', np.mean(raw_data, axis=0)))
     return piece_data
+
+
+def read_cosmo_perf(data_path: str, data_type: str = 'auto') -> Union[np.ndarray, pd.DataFrame]:
+    data = pd.read_csv(data_path, index_col='count')
+    if data_type == 'mixed':
+        return data
+    elif data_type == 'tempo':
+        return np.array(data['tempo'])
+    elif data_type == 'beats':
+        return np.array(data['time'])
+    else:
+        raise NotImplementedError("Unsupported data type")
 
 
 def read_cosmo_collection(main_folder, data_type='auto', include_average=False):
@@ -364,62 +382,22 @@ def read_all_cosmo_data(source_path="data/Chopin Collection/"):
 
 
 def read_posterior(filepath: str):
-    """Reads a saved sequence of posteriors.
+    """Read a saved sequence of posteriors.
 
     Args:
         filepath (str): The path where the data was saved
     """
-    df = pd.read_csv(filepath, names=["count", "posterior"])
+    df = pd.read_csv(filepath, names=["count", "posterior"], index_col="count", header=0)
     return df["posterior"]
 
 
+def join_collections(collection1, collection2):
+    collection1 = sorted(collection1)
+    collection2 = sorted(collection2)
+    return [(piece_name, join_pieces(piece_from_1, piece_from_2))
+            for (piece_name, piece_from_1), (_piece_name, piece_from_2) in zip(collection1, collection2)]
 
-# if __name__ == "__main__":
-    # filename = "M06-2beat_time.csv"
-    # data = readMazurkaTimings(filename)
-    # for d in data:
-    #     print(d)
 
-    # filename = "M06-2_seg_man.csv"
-    # data = readMazurkaArcSegmentation(filename)
-    # for d in data:
-    #     print(d)
-    # data = readAllMazurkaDataAndSeg()
-    # for maz, pid, tim, seg in data:
-    #     print(maz, pid, tim, seg)
-    # a = readAllMultidim(["beat_dyn"], [None], ["Dyn"])
-    # f1 = '/Users/guichaoua 1/Nextcloud/Workspace/ArcV2/data/Chopin Collection/Annotations_tmp/Audio/excerpt_2.csv'
-    # print("Annots", read_cosmo_annotation(f1))
-    # f2 = '/Users/guichaoua 1/Nextcloud/Workspace/ArcV2/data/Chopin Collection/Beats/excerpt_2_beats.csv'
-    # print("Beats", read_cosmo_beats(f2))
-    # f3 = '/Users/guichaoua 1/Nextcloud/Workspace/ArcV2/data/Chopin Collection/Loudness/excerpt_2_loudness.csv'
-    # print("Loudness", read_cosmo_loudness(f3))
-
-    # beats = read_cosmo_beats(f2)
-    # raw_loud = read_cosmo_loudness(f3)
-    # loud = preprocess_cosmo_loudness(raw_loud, beats)
-
-    # import matplotlib.pyplot as plt
-    # plt.plot(*zip(*raw_loud))
-    # x, y = zip(*raw_loud)
-    # interpol = UnivariateSpline(x, y, s=10000)
-    # xsample = np.linspace(beats[0], beats[-1], 10000)
-    # ysample = interpol(xsample)
-    # plt.plot(xsample, ysample)
-    # plt.plot(beats, loud)
-
-    # raw_annot = read_cosmo_annotation(f1)
-    # annot = preprocess_cosmo_annotation(raw_annot, beats)
-
-    # bound_clocktime = [beats[idx] for idx in annot]
-    # plt.vlines(bound_clocktime, ymin=np.min(loud), ymax=np.max(loud), colors="r")
-    # plt.vlines(raw_annot, ymin=np.min(loud), ymax=np.max(loud), colors="b")
-    # plt.vlines(beats, ymin=np.min(loud), ymax=0.5*np.max(loud), colors="k")
-    # plt.show()
-    # print(loud)
-
-    # data = read_all_cosmo_data()
-
-    # print(data)
-
-    # print("Done")
+def join_pieces(piece1, piece2):
+    return [CosmoPerf(pid1, list(zip(perf1, perf2)))
+            for (pid1, perf1), (_pid2, perf2) in zip(sorted(piece1), sorted(piece2))]
