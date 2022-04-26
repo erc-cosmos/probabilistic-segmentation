@@ -1,11 +1,10 @@
 """Tests for the singleArc submodule."""
 from bayes_arcs import single_arc as sa
+import default_vars
 import hypothesis
 import hypothesis.strategies as st
 import numpy as np
 import pytest
-
-import default_vars
 
 
 def test_likelihood_1d():
@@ -66,7 +65,7 @@ def test_noise_cov_1d_is_diagonal():
     prior = default_vars.arc_prior
     x, _ = zip(*default_vars.data_1d)
     output = sa.make_noise_cov(prior, x)
-    assert not np.any(output-np.diag(np.diagonal(output)))
+    assert not np.any(output-np.diag(np.diagonal(output)))  # type: ignore
 
 
 def test_noise_cov_2d_is_diagonal():
@@ -74,7 +73,7 @@ def test_noise_cov_2d_is_diagonal():
     priors = [default_vars.arc_prior, default_vars.arc_prior2]
     x, _ = zip(*default_vars.data_multidim)
     output = sa.make_noise_cov(priors, x)
-    assert not np.any(output-np.diag(np.diagonal(output)))
+    assert not np.any(output-np.diag(np.diagonal(output)))  # type: ignore
 
 
 @hypothesis.given(st.lists(st.floats(min_value=-1e5, max_value=1e5), min_size=2),

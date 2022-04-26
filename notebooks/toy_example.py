@@ -1,3 +1,4 @@
+"""Simple run on synthetic data."""
 # %%
 import math
 

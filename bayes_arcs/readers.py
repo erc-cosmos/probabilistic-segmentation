@@ -9,7 +9,7 @@ from collections import namedtuple
 import csv
 import itertools as itt
 import os
-from typing import Any, List, Union, NamedTuple
+from typing import Any, List, NamedTuple, Sequence, Union
 
 import numpy as np
 import pandas as pd
@@ -22,8 +22,17 @@ CosmonoteData = namedtuple("CosmonotePiece", ['piece_id', 'beats', 'tempo', 'lou
 
 
 class CosmoPerf(NamedTuple):
+    """Named tuple to hold a performance in cosmonote format."""
+
     perf_id: str
     perf_data: Any  # Union[pd.DataFrame, np.ndarray]
+
+
+class CosmoPiece(NamedTuple):
+    """Named tuple to hold a piece (with many interpretations) in cosmonote format."""
+
+    piece_id: str
+    piece_data: Sequence[CosmoPerf]
 
 
 def read_mazurka_data(filename, preprocess=None):
@@ -65,7 +74,7 @@ def read_all_mazurka_data(dirpath="data/beat_dyn", preprocess=None):
     # Retrieve all mazurka files
     files = [os.path.join(dirpath, file) for file in os.listdir(dirpath) if os.path.splitext(file)[1] == ".csv"]
     # Read and return them
-    return list(zip(files, map(lambda f: read_mazurka_data(f, preprocess=preprocess), files)))
+    return list(map(CosmoPiece, files, map(lambda f: read_mazurka_data(f, preprocess=preprocess), files)))
 
 
 def read_mazurka_arc_segmentation(filename):
@@ -281,7 +290,19 @@ def read_cosmo_piece(piece_folder, data_type='auto', include_average=False):
     return piece_data
 
 
-def read_cosmo_perf(data_path: str, data_type: str = 'auto') -> Union[np.ndarray, pd.DataFrame]:
+def read_cosmo_perf(data_path: str, data_type: str = 'mixed') -> Union[np.ndarray, pd.DataFrame]:
+    """Read a performance from a cosmonote-formatted file.
+
+    Args:
+        data_path (str): path to the file to read
+        data_type (str, optional): which column to access. Defaults to 'mixed'.
+
+    Raises:
+        NotImplementedError: If the data type is unknown
+
+    Returns:
+        Union[np.ndarray, pd.DataFrame]: The requested performance feature, or everything if data_type is mixed
+    """
     data = pd.read_csv(data_path, index_col='count')
     if data_type == 'mixed':
         return data
@@ -391,13 +412,31 @@ def read_posterior(filepath: str):
     return df["posterior"]
 
 
-def join_collections(collection1, collection2):
+def join_collections(collection1: Sequence[CosmoPiece], collection2: Sequence[CosmoPiece]) -> Sequence[CosmoPiece]:
+    """Join data from two different features at the collection level.
+
+    Args:
+        collection1 (Sequence[CosmoPiece]): First feature data for the collection
+        collection2 (Sequence[CosmoPiece]): Second feature for the collection
+
+    Returns:
+        Sequence[CosmoPiece]: Joined data
+    """
     collection1 = sorted(collection1)
     collection2 = sorted(collection2)
-    return [(piece_name, join_pieces(piece_from_1, piece_from_2))
+    return [CosmoPiece(piece_name, join_pieces(piece_from_1, piece_from_2))
             for (piece_name, piece_from_1), (_piece_name, piece_from_2) in zip(collection1, collection2)]
 
 
-def join_pieces(piece1, piece2):
+def join_pieces(piece1: Sequence[CosmoPerf], piece2: Sequence[CosmoPerf]) -> Sequence[CosmoPerf]:
+    """Join data from two different features at the piece level.
+
+    Args:
+        piece1 (Sequence[CosmoPerf]): First feature data for the piece
+        piece2 (Sequence[CosmoPerf]): Second feature for the piece
+
+    Returns:
+        Sequence[CosmoPerf]: Joined data
+    """
     return [CosmoPerf(pid1, list(zip(perf1, perf2)))
             for (pid1, perf1), (_pid2, perf2) in zip(sorted(piece1), sorted(piece2))]

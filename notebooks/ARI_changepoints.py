@@ -1,3 +1,4 @@
+"""Notebook for ARI signals."""
 # %%
 from bayes_arcs import segment_viz
 import dynamic_computation as dc
@@ -273,8 +274,8 @@ _ = segment_viz.plot_segment_raindrop(uni_prior_bidim, max_length=120)
 
 
 # %%
-print(geo_prior.distrib.get(15)**2)
-print(geo_prior.distrib.get(10)*geo_prior.distrib.get(20))
+print(geo_prior.distrib[15]**2)
+print(geo_prior.distrib[10]*geo_prior.distrib[20])
 
 
 # %%

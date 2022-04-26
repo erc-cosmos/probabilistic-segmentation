@@ -1,6 +1,10 @@
+"""Notebook to run on a single Mazurka, matching with annotations."""
 # %%
 from bayes_arcs import default_priors
-from bayes_arcs import segment_viz, length_priors, readers, dynamic_computation as dc
+from bayes_arcs import dynamic_computation as dc
+from bayes_arcs import length_priors
+from bayes_arcs import readers
+from bayes_arcs import segment_viz
 
 # %%
 cosmo = readers.read_all_cosmo_data()

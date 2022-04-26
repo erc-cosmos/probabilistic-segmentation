@@ -68,7 +68,8 @@ def arc_likelihood(priors, data, *, disable_opti=False):
     # Bold t in the doc
     target_values = np.array(output_vectors).flatten('F')  # Flatten column first
 
-    return multivariate_normal.logpdf(target_values, mean=mean_vect_data, cov=cov_mat_data)
+    # Inferred type is wrong
+    return multivariate_normal.logpdf(target_values, mean=mean_vect_data, cov=cov_mat_data)  # type: ignore
 
 
 def _arc_likelihood_static_prior(prior, data):

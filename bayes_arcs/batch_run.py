@@ -47,6 +47,7 @@ def batch_run(full_data, arc_prior, length_prior_params, output_dir, piece_name_
 
 
 def run_mazurka_tempo_correction():
+    """Batch correction of outliers in the Mazurka dataset."""
     import matplotlib.pyplot as plt
 
     def compare_before_after(before, after, dest_path):
@@ -127,7 +128,8 @@ def run_tempo_autocorrected_with_loudness():
     """Pre-filled batch run for all Mazurka with the corrected tempo and loudness."""
     tempo_folder = "data/tempo_autocorrected"
 
-    full_data = readers.join_collections(readers.read_cosmo_collection(tempo_folder, data_type="tempo", include_average=False),
+    full_data = readers.join_collections(readers.read_cosmo_collection(tempo_folder, data_type="tempo",
+                                                                       include_average=False),
                                          list(readers.read_all_mazurka_data("data/beat_dyn")))
 
     arc_prior = [arc_prior_tempo, arc_prior_loud]
@@ -149,7 +151,8 @@ def run_tempo_autocorrected_average_only():
     batch_run(full_data, arc_prior, length_prior_params, output_dir, piece_name_finder=lambda f: f"Mazurka{f}")
 
 
-def read_full_one_per_perf(main_folder):
+def read_full_one_per_perf(main_folder: str):
+    """Read a dataset with a <Piece>/<Perf>.csv file structure."""
     pieces = sorted([f for f in os.listdir(main_folder)
                      if os.path.isdir(os.path.join(main_folder, f))])
     print(pieces)
@@ -167,7 +170,13 @@ def read_full_one_per_perf(main_folder):
     return full_data
 
 
-def run_1d_figures(marginals_dir, raw_data_dir):
+def run_1d_figures(marginals_dir: str, raw_data_dir: str) -> None:
+    """Generate boundaries and signal type plots for a whole collection.
+
+    Args:
+        marginals_dir (str): Path to save the figures
+        raw_data_dir (str): Path of the collection
+    """
     raw_data = readers.read_cosmo_collection(raw_data_dir, data_type='mixed', include_average=False)
     for (piece, piece_data) in raw_data:
         for (interpret, data) in piece_data:
@@ -181,10 +190,16 @@ def run_1d_figures(marginals_dir, raw_data_dir):
             segment_viz.plt.savefig(fig_path)
             segment_viz.plt.close(fig)
             print(piece, interpret)
-        return  # Early return for debug
 
 
-def run_1d_figures_2input(marginals_dir, raw_data_dir, other_data_dir):
+def run_1d_figures_2input(marginals_dir: str, raw_data_dir: str, other_data_dir: str):
+    """Generate boundaries and signal type plots for a collection with two types of input data.
+
+    Args:
+        marginals_dir (str): Path to save the figures
+        raw_data_dir (str): Path of the collection's main data
+        other_data_dir (str): Path of the collection's second data sequences
+    """
     raw_data = readers.join_collections(
         readers.read_cosmo_collection(raw_data_dir, data_type='beats', include_average=False),
         readers.join_collections(readers.read_cosmo_collection(raw_data_dir, data_type='tempo', include_average=False),
@@ -205,7 +220,6 @@ def run_1d_figures_2input(marginals_dir, raw_data_dir, other_data_dir):
             segment_viz.plt.savefig(fig_path)
             segment_viz.plt.close(fig)
             print(piece, interpret)
-        # return  # Early return for debug
 
 # if __name__ == "__main__":
 #     fullData = list(readers.read_all_mazurka_timings("data/beat_time"))

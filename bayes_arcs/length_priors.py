@@ -1,7 +1,7 @@
 """Module for arc length priors."""
 import collections
 import functools
-from typing import Mapping
+from typing import Mapping, Optional
 
 from scipy.stats import norm  # type:ignore
 
@@ -97,11 +97,11 @@ class NormalLengthPrior(ContinuousLengthPrior):
 class DiscreteLengthPrior:
     """Prior using a discrete distribution."""
 
-    def __init__(self, data_length: int, distribution: Mapping[int, float], max_length: int = None):
+    def __init__(self, data_length: int, distribution: Mapping[int, float], max_length: Optional[int] = None):
         """Construct a DiscreteLengthPrior."""
         self._dataLength = data_length
         self._distrib = distribution
-        self._max_length = max_length if max_length is not None else max(self.distrib)
+        self._max_length = max_length or max(self.distrib)
 
     def __repr__(self):
         """Return a human-readable representation of an empirical prior."""

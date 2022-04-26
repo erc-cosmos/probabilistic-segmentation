@@ -1,3 +1,4 @@
+"""Basic run on a single performance."""
 # %%
 import importlib
 

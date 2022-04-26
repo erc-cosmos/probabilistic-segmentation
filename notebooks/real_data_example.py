@@ -1,5 +1,4 @@
-# %% [markdown]
-#  # Simple test with real data
+"""Simple test with real data."""
 
 # %%
 
@@ -41,7 +40,7 @@ arc_prior = default_priors.arc_prior_tempo
 
 # %%
 # Unpack the data
-(piece, interpret, tempo, tempo_seg, dyn, dyn_seg) = full_data.loc[0, :]
+(piece, interpret, tempo, tempo_seg, dyn, dyn_seg) = full_data.loc[0, :]  # type: ignore
 
 piece_formatted = piece[16:20]
 print(piece_formatted, interpret)

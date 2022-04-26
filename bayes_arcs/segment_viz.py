@@ -1,10 +1,11 @@
 """Visualisations for segmentations."""
+from typing import Iterable, Union
+
 import matplotlib.pyplot as plt
 import numpy as np
 from scipy import signal
-from typing import Iterable, Union
 
-plt.rcParams["font.family"] = "Times"
+plt.rcParams["font.family"] = "Times"  # type: ignore
 
 
 def plot_segment_matrix(data, smoothing: int):
@@ -27,7 +28,7 @@ def plot_segment_matrix(data, smoothing: int):
     fig.show()
 
 
-def plot_segment_raindrop(data, max_length, ratio=4, show=True, xticks=12):
+def plot_segment_raindrop(data, max_length, ratio: float = 4, show=True, xticks=12):
     """Display a raindrop type graph for segmentation."""
     linear_viz_point = np.zeros((np.shape(data)[0], max_length))
     for i in range(np.shape(data)[0]):
@@ -50,7 +51,7 @@ def plot_segment_raindrop(data, max_length, ratio=4, show=True, xticks=12):
     return fig
 
 
-def plot_segment_beams(post2_bidim, max_length, ratio=4, show=True, xticks=12):
+def plot_segment_beams(post2_bidim, max_length, ratio: float = 4, show=True, xticks=12):
     """Display a beams-like graph for segmentation."""
     linear_viz = np.zeros((np.shape(post2_bidim)[0], max_length))
     for i in range(np.shape(post2_bidim)[0]):
@@ -117,8 +118,8 @@ def plot_segment_with_signal(post_marginals, data, data_time, boundaries=None, *
 def plot_segment_with_multiple_signals(post_marginals, data_a, data_b, data_time, boundaries=None, *,
                                        data_color_a='r', data_color_b='g', post_color='b', bound_color='k',
                                        smoothing: int = 5, show: bool = True,
-                                       input_label_a: str = 'Tempo', input_label_b: str = 'Loudness', time_label: str = 'Beat',
-                                       figsize=(10, 4), xticks=12, legend=True):
+                                       input_label_a: str = 'Tempo', input_label_b: str = 'Loudness',
+                                       time_label: str = 'Beat', figsize=(10, 4), xticks=12, legend=True):
     """Display boundary marginals with dual input data."""
     fig, ax1 = plt.subplots(figsize=figsize, dpi=100)
 
@@ -153,6 +154,7 @@ def plot_segment_with_multiple_signals(post_marginals, data_a, data_b, data_time
 
 def add_structure(fig, length, structure, text_height=0.85, bar_length=3,
                   segment_length_in_bars=4, subsegment_length=4):
+    """Add a reference structure to a boundary plot."""
     import matplotlib.patches as patches
     plt.figure(fig)
 
