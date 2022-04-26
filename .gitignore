@@ -9,3 +9,6 @@ output/
 .hypothesis
 Figures arcs/
 __pycache__
+corr_ps.png
+*.npy
+*.zip

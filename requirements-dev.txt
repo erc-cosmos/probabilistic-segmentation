@@ -1,0 +1,4 @@
+hypothesis
+pylint
+ipython
+autopep8
