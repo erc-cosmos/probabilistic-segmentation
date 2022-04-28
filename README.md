@@ -8,8 +8,11 @@ The code is organised into 3 directories:
 * The `notebooks` folder holds independent notebooks (in celled code format) which cover a few different use cases for the generic code. They are meant to be edited to fit the exact need.
 * The `tests` folder gathers all the testing code. Testing is mainly done using the property testing paradigm (more on this below).
 
+To get the notebooks and the tests to run easily, edit the aboslute path in `.env` to the absolute path of the directory on your machine.
+
 ## Using the code
 Notebooks are useful to follow along. The `single_run.py` notebook in particular shows a straightforward use case.
+
 
 The main functions to call are `compute_boundary_posteriors` or `compute_both_posteriors` in the `dynamic_computation` submodule, which respectively output the posterior credence of segment end positions or a pair containing the credence for boundaries and for segments. They mainly expect 3 arguments :
 * The input sequence (a numpy array, possibly with more than one column), which can be read from the databases using the functions in the `readers` submodule. Alternatively, the `synthetic_data` submodule can randomly generate data that fits some priors. If the `linear_sampling` option is `False`, it instead expects an iterable of (x,y) pairs, where x is the time associated with datapoint y (which can be multidimensional).

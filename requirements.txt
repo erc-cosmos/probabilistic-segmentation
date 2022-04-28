@@ -1,3 +1,5 @@
 scipy
 pandas
 pyplot
+ipython
+python>=3.9
