@@ -1,6 +1,43 @@
 # Arcs Bayesian Segmentation
 This contains code to run a Bayesian segmentation of a sequence.
 
+## Quick start
+
+After cloning or pulling this repository, open a terminal in its directory.
+
+**Mac/Linux:**
+
+```sh
+bash bootstrap.sh
+bash cosmos.sh setup
+source ./activate.sh
+pixi run --locked test
+```
+
+**Windows PowerShell:**
+
+```powershell
+powershell -ExecutionPolicy Bypass -File .\bootstrap.ps1
+powershell -ExecutionPolicy Bypass -File .\cosmos.ps1 setup
+. .\activate.ps1
+pixi run --locked test
+```
+
+To run your own script, replace `your_script.py` with its filename:
+
+```sh
+pixi run --locked python your_script.py
+```
+
+Repeat activation in each new terminal. After pulling project updates, repeat
+bootstrap and setup to install the saved versions of Pixi, Python, and packages.
+
+`test` runs the 58 self-contained tests. Use `pixi run --locked test-all` only
+when the external Mazurka datasets are available in `data/`.
+
+For setup details, Windows activation troubleshooting, and maintaining the
+environment, see [Python setup and cosmos-python](PYTHON-ENVIRONMENT.md).
+
 ## Code organisation
 
 The code is organised into 3 directories:
@@ -8,7 +45,7 @@ The code is organised into 3 directories:
 * The `notebooks` folder holds independent notebooks (in celled code format) which cover a few different use cases for the generic code. They are meant to be edited to fit the exact need.
 * The `tests` folder gathers all the testing code. Testing is mainly done using the property testing paradigm (more on this below).
 
-To get the notebooks and the tests to run easily, edit the aboslute path in `.env` to the absolute path of the directory on your machine.
+Pixi commands set the repository import path automatically; no `.env` edits are required. Original notebooks may still need their data paths adjusted.
 
 ## Using the code
 Notebooks are useful to follow along. The `single_run.py` notebook in particular shows a straightforward use case.

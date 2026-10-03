@@ -12,3 +12,12 @@ __pycache__
 corr_ps.png
 *.npy
 *.zip
+
+# COSMOS Python local files
+.tools/
+.pixi/
+.cache/
+__pycache__/
+
+# Local IDE settings
+.idea/
