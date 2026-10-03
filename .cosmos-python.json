@@ -1,0 +1,16 @@
+{
+  "files": {
+    "COSMOS-TOOLS.md": "956499f17487276b24c01595a4ddecc9362f6ff21f9ba8ab62481d75488f069a",
+    "activate.ps1": "59a3de2269b146e61322ebde5286b227787b0698ddeaeca82a2f7c79d0acac80",
+    "activate.sh": "0c79321f09665637fd544237facee8c19f2150177f9897e95556bca6bbb3249e",
+    "bootstrap.ps1": "150121cc0f57b97ee05e5f992c1897592a471ba4713b9f99e5835412e58511d3",
+    "bootstrap.sh": "96b6c2e9488eac58ecbc1866a869dfe3aebdc5f4876da7d1609cf712c441dae8",
+    "cosmos.ps1": "ece34cb9f23138f510dd5d88275b7eda5b6f3f6b6d2470e0163e82d4e2c43473",
+    "cosmos.sh": "1c00da43701326566398b95a165f0b3b536553c78cdbbb6d44b64658525dc92c",
+    "update.ps1": "0d953e9e8bb57f773c16e474bbc530ae3c9f6b8e1a9763dd9d314e23091af029",
+    "update.sh": "bfc64ac000048b42a6e85b649b58c69be37c2f2d087c418d1241e6a10f399759"
+  },
+  "requires_pixi": "==0.81.0",
+  "schema": 1,
+  "template_version": "1.1.0"
+}
